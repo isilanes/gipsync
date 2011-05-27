@@ -40,6 +40,7 @@ import zlib
 import shutil
 import hashlib
 import optparse
+import gipsync.core
 import Time as T
 import System as S
 import FileManipulation as FM
