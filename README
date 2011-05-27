@@ -54,3 +54,5 @@ Index file for repo "whatever". It contains the required info (name, md5sum, siz
 * whatever.excludes
 
 Exclude file for repo "whatever". Each line will be used as a reference string. Any path in LOCALDIR that matches (wholly or partially) any reference string, will be ignored by gipsync.
+
+borraEstaLinea
