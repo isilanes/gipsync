@@ -226,7 +226,7 @@ class repositories:
 
   def __init__(self):
       self.path_local   = None      # root path of local repo
-      self.proxy        = None      # root path of repo proxy
+      #self.proxy        = None      # root path of repo proxy
       self.files        = {}        # dict of filename/file object
       self.files_read   = {}        # dict of file names:true (to check pertenence)
       self.files_local  = {}        # dict of file names:true (to check pertenence)
@@ -1143,27 +1143,27 @@ if o.new:
   tn = T.now()
 
   try:
-    conf_name = args[0]
+      conf_name = args[0]
   except:
-    msg = 'You must input config name if you want to create new repo.'
-    sys.exit(msg)
+      msg = 'You must input config name if you want to create new repo.'
+      sys.exit(msg)
 
   # Check that conf file exists, and read it:
   cfile = '{0}/{1}.conf'.format(conf_dir,conf_name)
   if os.path.isfile(cfile):
-    conf = FM.conf2dic(cfile)
+      conf = FM.conf2dic(cfile)
   else:
-    msg = 'Requested file "{0}" does not exist!'.format(cfile)
-    sys.exit(msg)
+      msg = 'Requested file "{0}" does not exist!'.format(cfile)
+      sys.exit(msg)
   
   # Check that repo dir is mounted:
-  proxydir = prefs['PROXYDIR']
-  if not os.path.isdir(proxydir):
-    msg = 'Can not find dir "{0}". Is it mounted?'.format(proxydir)
-    sys.exit(msg)
+  pivotdir = prefs['PIVOTDIR']
+  if not os.path.isdir(pivotdir):
+      msg = 'Can not find dir "{0}". Is it mounted?'.format(pivotdir)
+      sys.exit(msg)
 
   # Create repo dir:
-  proxy_repo = '{0}/{1}'.format(proxydir, conf['REPODIR'])
+  proxy_repo = '{0}/{1}'.format(pivotdir, conf['REPODIR'])
   repos.proxy = proxy_repo
 
   if not os.path.isdir(proxy_repo):
@@ -1174,10 +1174,10 @@ if o.new:
     os.mkdir(data_dir)
 
   # Create tmpdir:
-  repos        = repositories()
+  repos = repositories()
   repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, conf_name)
   if not os.path.isdir(repos.tmpdir):
-    os.mkdir(repos.tmpdir)
+      os.mkdir(repos.tmpdir)
 
   # --- Read local data --- #
 
@@ -1221,7 +1221,7 @@ if o.new:
 
 elif o.delete:
     # Check that repo dir is mounted:
-    dir = prefs['PROXYDIR']
+    dir = prefs['PIVOTDIR']
     if not os.path.isdir(dir):
         msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
         sys.exit(msg)
@@ -1255,27 +1255,6 @@ elif o.delete:
             goon = False
 
     sys.exit()
-
-##################
-#                #
-#  SYNC SECTION  #
-#                #
-##################
-
-elif o.sync:
-    '''
-    Sync remote repo and proxy dir, e.g. to delete stuff, then sync back.
-    '''
-    rsync = 'rsync -rto --progress -hv --delete'
-    proxydir = prefs['PROXYDIR']
-    remote = prefs['REMOTE']
-    if o.up:
-        cmnd = '{0} {2}/ {1}/'.format(rsync, remote, proxydir)
-    else:
-        cmnd = '{0} {1}/ {2}/'.format(rsync, remote, proxydir)
-    
-    print(cmnd)
-    S.cli(cmnd)
 
 ##################
 #                #
@@ -1342,7 +1321,6 @@ else:
     # Sync local proxy repo with remote repo:
     string = 'Downloading index.dat...'
     say(string)
-    repos.proxy = prefs['PROXYDIR'] + '/' + re.sub('/$','',cfg['REPODIR'])
     repos.repo_io(what='index') # first download only index.dat.gpg
 
     # Get remote md5tree:
