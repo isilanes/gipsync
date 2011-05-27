@@ -1,6 +1,8 @@
 import os
 import shutil
 import hashlib
+import time
+import datetime
 import System as S
 #import DataManipulation as DM
 
@@ -1040,5 +1042,92 @@ def conf2dic(fname,separator='='):
    f.close()
 
    return cf
+
+#--------------------------------------------------------------------------------#
+
+class Timing:
+  
+  def __init__(self):
+    
+     self.t0         = now()
+     self.milestones = []
+     self.data       = {}
+
+  def milestone(self,id=None):
+
+    # ID of milestone:
+    if not id:
+      id = 'unk'
+
+    # Avoid dupe IDs:
+    while id in self.milestones:
+      id += 'x'
+
+    tnow = now()
+
+    self.milestones.append(id)
+    self.data[id] = { 'time' : tnow }
+
+  def summary(self,seconds=False):
+
+    otime = self.t0
+
+    maxl = 9
+    for milestone in self.milestones:
+
+      l = len(milestone) + 1
+      if l > maxl: maxl = l
+
+    smry = '\n{0:>8} {1:>{3}} {2:>8}\n'.format('Time', 'Milestone', 'Elapsed', maxl)
+
+    for milestone in self.milestones:
+
+      t     = self.data[milestone]['time']
+      delta =  t - otime
+      otime = t
+
+      if seconds:
+        smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(t-self.t0, milestone, delta, maxl)
+
+      else:
+          tt0 = s2hms(t - self.t0)
+          dta = s2hms(delta)
+          smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(tt0, milestone, dta, maxl)
+
+    return smry
+
+#--------------------------------------------------------------------------------#
+
+def now():
+    '''
+    Return current time, in seconds since epoch format.
+    '''
+    date = datetime.datetime.now()
+    
+    return time.mktime(date.timetuple())
+
+#--------------------------------------------------------------------------------#
+
+def s2hms(argu):
+    '''
+    Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format.
+    '''
+
+    # First, ascertain type of argument, and convert to seconds:
+    if type(argu) is int:
+        seconds = argu
+    elif type(argu) is datetime.timedelta:
+        seconds = argu.seconds + 86400*argu.days
+    else:
+        return 0
+
+    # Create output strint, and return:
+    hh = int(seconds/3600.0)
+    mm = int((seconds - 3600*hh)/60.0)
+    ss = int(seconds - 3600*hh - 60*mm)
+
+    string = '{0:02}:{1:02}:{2:02}'.format(hh,mm,ss)
+
+    return string
 
 #--------------------------------------------------------------------------------#

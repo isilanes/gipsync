@@ -39,8 +39,6 @@ import optparse
 import gipsync.core as GC
 import subprocess as sp
 
-import Time as T
-
 #--------------------------------------------------#
 
 # Read arguments:
@@ -112,7 +110,7 @@ parser.add_option("-l", "--limit-bw",
 
 conf_dir = '%s/.gipsync' % (os.environ['HOME'])
 prefs = GC.conf2dic(conf_dir+'/config')
-times = T.timing()
+times = GC.Timing()
 la = GC.LastAction()
 la.file = '{0}/last_action'.format(conf_dir)
 
@@ -125,7 +123,7 @@ la.file = '{0}/last_action'.format(conf_dir)
 ####################
 
 if o.new:
-  tn = T.now()
+  tn = GC.now()
 
   try:
       conf_name = args[0]
@@ -211,7 +209,7 @@ elif o.delete:
         msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
         sys.exit(msg)
 
-    tn = T.now()
+    tn = GC.now()
 
     # Get info:
     sizes = GC.collect_sizes(dir)
