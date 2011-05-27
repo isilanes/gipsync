@@ -156,7 +156,7 @@ if o.new:
     os.mkdir(data_dir)
 
   # Create tmpdir:
-  repos = GC.Repositories(o, last_action_file)
+  repos = GC.Repositories(o,la)
   repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, conf_name)
   if not os.path.isdir(repos.tmpdir):
       os.mkdir(repos.tmpdir)
@@ -256,6 +256,7 @@ else:
   # Perform actions for each repo named in args:
   for what in args:
     repos = GC.Repositories(o,la)
+    repos.prefs = prefs # inform repos object of preferences
 
     repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, what)
 
@@ -265,6 +266,7 @@ else:
     # Read configs:
     cfile = '{0}/{1}.conf'.format(conf_dir, what)
     cfg = GC.conf2dic(cfile)
+    repos.cfg = cfg # inform repos object of configuration
 
     times.milestone('Read confs')
 

@@ -142,6 +142,8 @@ class Repositories:
       self.options      = opt          # optparse options
       self.last_action  = la
       self.really_do    = False
+      self.prefs        = {}
+      self.cfg          = {}
 
       # rsync command:
       try:
@@ -529,11 +531,11 @@ class Repositories:
           # Create a sftp script file to delete remote files:
           tmpfile = '{0}/nuke_remote.sftp'.format(self.tmpdir)
           f = open(tmpfile,'w')
-          f.write('sftp {0} <<EOF\n'.format(prefs['REMOTE']))
+          f.write('sftp {0} <<EOF\n'.format(self.prefs['REMOTE']))
 
           for fn in self.diff.remote + self.diff.newlocal:
               hash = self.files[fn].hash_remote
-              line = 'rm {0[REPODIR]}/data/{1}.gpg\n'.format(cfg, hash)
+              line = 'rm {0[REPODIR]}/data/{1}.gpg\n'.format(self.cfg, hash)
               f.write(line)
               nuke_some = True
               fn_list.append(fn)
