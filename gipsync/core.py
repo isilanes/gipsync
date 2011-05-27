@@ -1056,8 +1056,11 @@ class Timing:
 
     # ----- #
 
-    
     def milestone(self,id=None):
+        '''
+        Add a milestone to list. A milestone is just a point in time that 
+        we record.
+        '''
         
         # ID of milestone:
         if not id:
