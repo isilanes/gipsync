@@ -1,5 +1,6 @@
 import os
 import shutil
+import hashlib
 import System as S
 import FileManipulation as FM
 import DataManipulation as DM
@@ -72,41 +73,48 @@ def hashof(fn):
 
 #--------------------------------------------------------------------------------#
 
-class fileitem:
+class Fileitem:
     '''
     Each of the items of the list of local or remote files, holding its characteristics.
     '''
 
-    def __init__(self, name=None):
-        self.name         = name
+    def __init__(self, name=None, repos=None):
+        self.name  = name
+        self.repos = repos
 
-        self.size_read    = 0
-        self.size_local   = 0
-        self.size_remote  = 0
+        self.size_read   = 0
+        self.size_local  = 0
+        self.size_remote = 0
 
         self.mtime_read   = 0
         self.mtime_local  = 0
         self.mtime_remote = 0
 
-        self.hash_read    = None
-        self.hash_local   = None
-        self.hash_remote  = None
+        self.hash_read   = None
+        self.hash_local  = None
+        self.hash_remote = None
+
+    # --- #
 
     def fullname(self):
         '''
         Return full (local) name of file.
         '''
-        return '%s/%s' % (repos.path_local, self.name)
+        return '%s/%s' % (self.repos.path_local, self.name)
+
+    # --- #
 
     def get_hash(self):
         '''
-        Calc hash function for fileitem
+        Calc hash function for Fileitem.
         '''
         return hashof(self.fullname())
 
+    # --- #
+
     def get_size(self):
         '''
-        Calc file size for fileitem.
+        Calc file size for Fileitem.
         '''
         self.size_local = os.path.getsize(self.fullname())
 
@@ -117,7 +125,7 @@ class Repositories:
   All the data about both local and remote repos.
   '''
 
-  def __init__(self,opt=None,laf=None):
+  def __init__(self,opt=None,la=None):
       self.path_local       = None      # root path of local repo
       self.files            = {}        # dict of filename/file object
       self.files_read       = {}        # dict of file names:true (to check pertenence)
@@ -131,7 +139,7 @@ class Repositories:
       self.hashed           = 0            # total files for which hash was calculated
       self.diff             = repodiff()   # difference between repos
       self.options          = opt          # optparse options
-      self.last_action_file = laf
+      self.last_action      = la
       self.really_do        = False
 
       # rsync command:
@@ -161,7 +169,7 @@ class Repositories:
             sys.exit(msj)
 
         if not k in self.files:
-            self.files[k] = fileitem(name=k)
+            self.files[k] = Fileitem(name=k,repos=self)
             
         self.files_read[k]       = True
         self.files[k].hash_read  = av[0]
@@ -186,7 +194,7 @@ class Repositories:
               msj = 'The length of dictionary entry "%s|%s" is too short!' % (k,v)
               sys.exit(msj)
           
-          fi[k] = fileitem()
+          fi[k] = Fileitem(repos=self)
           fi[k].name = k
           
           if here:
@@ -231,7 +239,7 @@ class Repositories:
                 fname = '%s/%s' % (prs, file)
 
             if not fname in self.files:
-                self.files[fname] = fileitem()
+                self.files[fname] = Fileitem(repos=self)
 
             self.files[fname].name  = fname
             self.files_local[fname] = True
@@ -371,7 +379,7 @@ class Repositories:
         sys.exit(msj)
 
       if not k in self.files:
-          self.files[k] = fileitem(k)
+          self.files[k] = Fileitem(k, repos=self)
 
       if not k in self.files_remote:
           self.files_remote[k] = True
@@ -799,8 +807,8 @@ class Repositories:
               shutil.rmtree(self.tmpdir)
 
       # Delete last action file:
-      if os.path.isfile(self.last_action_file):
-          os.unlink(self.last_action_file)
+      if os.path.isfile(self.last_action.file):
+          os.unlink(self.last_action.file)
 
   # ----- #
 
@@ -834,12 +842,12 @@ class Repositories:
           print('\n' + cmnd1 + '\n' + cmnd2 + '\n' + cmnd3 + '\n')
 
       # Save command to file, in case we abort mid-rsync:
-      f = open(self.last_action_file,'w')
+      f = open(self.last_action.file,'w')
       f.write(cmnd)
       f.close()
 
       # Perform rsync and delete just-in-case file afterwards:
-      cmnd = '{0} && rm -f "{1}"'.format(cmnd, self.last_action_file)
+      cmnd = '{0} && rm -f "{1}"'.format(cmnd, self.last_action.file)
       S.cli(cmnd)
 
 #--------------------------------------------------------------------------------#
@@ -930,31 +938,6 @@ def doit(command,level=1,fatal_errors=True,laf=None):
 
 #--------------------------------------------------------------------------------#
 
-def last_action():
-    '''
-    Check if gipsync was previously aborted by searching for a "last_action" file.
-    If it was, suggest to perform action in "last_action" file, and exit.
-    '''
-
-    if os.path.isfile(last_action_file):
-        last_action = None
-
-        f = open(last_action_file,'r')
-        for line in f:
-            last_action = line
-        f.close()
-
-        if last_action:
-            print("Aborting: command aborted from previous run:\n")
-            print(last_action+'\n')
-            print("Please do the following:")
-            print(" 1 - Bring the above command to end by hand")
-            print(" 2 - Delete file {0}".format(last_action_file))
-            print(" 3 - Run gipsync again.")
-            sys.exit()
-
-#--------------------------------------------------------------------------------#
-
 def collect_sizes(dir):
     '''
     Collect the size of all data in remote repo (mounted locally by SSHFS).
@@ -1014,5 +997,43 @@ def say(string=None):
 
     if string:
         print('\033[1m%s\033[0m' % (string))
+
+#--------------------------------------------------------------------------------#
+
+class LastAction:
+    '''
+    Object to manage abortions and restarts.
+    '''
+
+    def __init__(self, laf=None):
+        '''
+        '''
+
+        self.file = laf
+
+    # --- #
+
+    def check(self):
+        '''
+        Check if gipsync was previously aborted by searching for a "last_action" file.
+        If it was, suggest to perform action in "last_action" file, and exit.
+        '''
+        
+        if os.path.isfile(self.file):
+            last_action = None
+            
+            f = open(self.file,'r')
+            for line in f:
+                last_action = line
+            f.close()
+            
+            if last_action:
+                print("Aborting: command aborted from previous run:\n")
+                print(last_action+'\n')
+                print("Please do the following:")
+                print(" 1 - Bring the above command to end by hand")
+                print(" 2 - Delete file {0}".format(self.file))
+                print(" 3 - Run gipsync again.")
+                sys.exit()
 
 #--------------------------------------------------------------------------------#

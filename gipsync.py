@@ -401,7 +401,8 @@ def say(string=None):
 conf_dir = '%s/.gipsync' % (os.environ['HOME'])
 prefs = FM.conf2dic(conf_dir+'/config')
 times = T.timing()
-last_action_file = '{0}/last_action'.format(conf_dir)
+la = GC.LastAction()
+la.file = '{0}/last_action'.format(conf_dir)
 
 #--------------------------------------------------------------------------------#
 
@@ -537,7 +538,7 @@ elif o.delete:
 else:
   # First of all, check whether there's some unresolved (truncated) action
   # from a previous run:
-  last_action()
+  la.check()
 
   # Check arguments:
   if args and args[0] == 'all':
@@ -545,7 +546,7 @@ else:
 
   # Perform actions for each repo named in args:
   for what in args:
-    repos = GC.Repositories(o,last_action_file)
+    repos = GC.Repositories(o,la)
 
     repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, what)
 
