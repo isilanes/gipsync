@@ -36,8 +36,8 @@ import os
 import re
 import sys
 import optparse
-import gipsync.core as GC
 import subprocess as sp
+import gipsync.core as GC
 
 #--------------------------------------------------#
 
@@ -108,7 +108,7 @@ parser.add_option("-l", "--limit-bw",
 
 # --- Initialization --- #
 
-conf_dir = '%s/.gipsync' % (os.environ['HOME'])
+conf_dir = '{0[HOME]}/.gipsync'.format(os.environ)
 prefs = GC.conf2dic(conf_dir+'/config')
 times = GC.Timing()
 la = GC.LastAction()

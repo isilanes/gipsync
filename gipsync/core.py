@@ -1,10 +1,10 @@
 import os
+import sys
 import shutil
 import hashlib
 import time
 import datetime
-import System as S
-#import DataManipulation as DM
+import subprocess as sp
 
 #--------------------------------------------------------------------------------#
 
@@ -166,7 +166,7 @@ class Repositories:
         av = v.split(':')
         
         if len(av) < 2:
-            msj = 'The fucking length of dictionary entry "%s=%s" is too short!' % (k,v)
+            msj = 'The length of dictionary entry "%s=%s" is too short!' % (k,v)
             sys.exit(msj)
 
         if not k in self.files:
@@ -338,7 +338,7 @@ class Repositories:
           # GPG temporary file tfn:
           fmt = '{0.gpgcom} -r {0.recipient} -o "{0.tmpdir}/{1}.gpg" -e "{2}"'
           cmnd = fmt.format(self, fn, tfn)
-          doit(cmnd,2)
+          self.doit(cmnd,2)
 
           # Upload to remote:
           cmnd1 = '{0} -q '.format(self.rsync)
@@ -351,7 +351,7 @@ class Repositories:
               print(' '  + cmnd3 + '\n')
 
           cmnd = cmnd1 + cmnd2 + cmnd3
-          doit(cmnd,666)
+          self.doit(cmnd,666)
 
   # ----- #
 
@@ -365,7 +365,7 @@ class Repositories:
     if self.options.verbosity > 0:
         print('\n'+cmnd)
     
-    S.cli(cmnd)
+    self.doit(cmnd)
     conf = '%s/%s' % (self.tmpdir, fn)
 
     dict = conf2dic(conf,separator='|')
@@ -479,7 +479,7 @@ class Repositories:
 
           # Finally, upload all of them from tmpdir to remote repo:
           cmnd = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.remote}/data/'.format(self,tmpfile)
-          doit(cmnd,2)
+          self.doit(cmnd,2)
           os.unlink(tmpfile)
 
           # Log changes:
@@ -513,7 +513,7 @@ class Repositories:
             print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
 
         cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.recipient, lfile, v.fullname())
-        doit(cmnd,2)
+        self.doit(cmnd,2)
 
   # ----- #
 
@@ -546,7 +546,7 @@ class Repositories:
 
               # Execute sftp script:
               cmnd = 'bash {0}'.format(tmpfile)
-              doit(cmnd)
+              self.doit(cmnd)
 
               # Delete nuked files from list of remote files:
               for fn in fn_list:
@@ -637,7 +637,7 @@ class Repositories:
       fmt  = '{0.rsync} -vh --progress {0.remote}/data/ --files-from={1}'
       fmt += ' {0.tmpdir}/data/'
       cmnd = fmt.format(self,tmpfile)
-      doit(cmnd,2)
+      self.doit(cmnd,2)
       os.unlink(tmpfile)
 
       # List of files we just downloaded:
@@ -672,7 +672,7 @@ class Repositories:
           if os.path.exists(fn):
 	      # First un-GPG it to tmp dir:
               cmnd = '{0} -o "{1}/tmp" -d "{2}"'.format(self.gpgcom, self.tmpdir, fn)
-              doit(cmnd,2)
+              self.doit(cmnd,2)
 
 	      # Then check if not corrupted:
               ref = file.hash_remote
@@ -681,7 +681,7 @@ class Repositories:
               if ref == act: # then it is OK. Proceed:
                   # Move tmp file into actual destination:
                   cmnd = 'mv -f "{0}/tmp" "{1}"'.format(self.tmpdir,file.fullname())
-                  doit(cmnd)
+                  self.doit(cmnd)
 
                   # Log changes:
                   file.hash_local  = file.hash_remote
@@ -710,7 +710,7 @@ class Repositories:
       for name in self.diff.local:
           v = self.files[name]
           cmnd = 'rm -f "%s/%s"' % (self.path_local, name)
-          doit(cmnd,2)
+          self.doit(cmnd,2)
 
           if self.really_do:
               del self.files_local[name]
@@ -834,7 +834,32 @@ class Repositories:
 
       # Perform rsync and delete just-in-case file afterwards:
       cmnd = '{0} && rm -f "{1}"'.format(cmnd, self.last_action.file)
-      S.cli(cmnd)
+      self.doit(cmnd)
+
+  # ----- #
+  
+  def doit(self,command,level=1,fatal_errors=True):
+      '''
+      Run/print command, depending on dry-run-nes and verbosity.
+      '''
+      
+      if not self.options.verbosity < level:
+          print(command)
+          
+      try:
+          f = open(self.last_action.file,'w')
+          f.write(command)
+          f.close()
+      except:
+          pass
+          
+      s = sp.Popen(command, shell=True)
+      s.communicate()
+      if fatal_errors:
+          ret = s.returncode
+          if ret != 0:
+              print('Error running command:\n%s' % (command))
+              sys.exit()
 
 #--------------------------------------------------------------------------------#
 
@@ -898,29 +923,6 @@ def find_exc(it,patts):
             break
 
     return found
-
-#--------------------------------------------------------------------------------#
-
-def doit(command,level=1,fatal_errors=True,laf=None):
-    '''
-    Run/print command, depending on dry-run-nes and verbosity.
-    '''
-
-    if not self.options.verbosity < level:
-        print(command)
-
-    if really_do and laf:
-        f = open(last_action_file,'w')
-        f.write(command)
-        f.close()
-
-        s = sp.Popen(command, shell=True)
-        s.communicate()
-        if fatal_errors:
-            ret = s.returncode
-            if ret != 0:
-                print('Error running command:\n%s' % (command))
-                sys.exit()
 
 #--------------------------------------------------------------------------------#
 
