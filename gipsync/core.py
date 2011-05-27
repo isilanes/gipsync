@@ -1048,55 +1048,56 @@ def conf2dic(fname,separator='='):
 #--------------------------------------------------------------------------------#
 
 class Timing:
-  
-  def __init__(self):
     
-     self.t0         = now()
-     self.milestones = []
-     self.data       = {}
+    def __init__(self):
+        self.t0         = now()
+        self.milestones = []
+        self.data       = {}
 
-  def milestone(self,id=None):
+    # ----- #
 
-    # ID of milestone:
-    if not id:
-      id = 'unk'
+    
+    def milestone(self,id=None):
+        
+        # ID of milestone:
+        if not id:
+            id = 'unk'
+        
+        # Avoid dupe IDs:
+        while id in self.milestones:
+            id += 'x'
+        
+        tnow = now()
+        
+        self.milestones.append(id)
+        self.data[id] = { 'time' : tnow }
 
-    # Avoid dupe IDs:
-    while id in self.milestones:
-      id += 'x'
-
-    tnow = now()
-
-    self.milestones.append(id)
-    self.data[id] = { 'time' : tnow }
-
-  def summary(self,seconds=False):
-
-    otime = self.t0
-
-    maxl = 9
-    for milestone in self.milestones:
-
-      l = len(milestone) + 1
-      if l > maxl: maxl = l
-
-    smry = '\n{0:>8} {1:>{3}} {2:>8}\n'.format('Time', 'Milestone', 'Elapsed', maxl)
-
-    for milestone in self.milestones:
-
-      t     = self.data[milestone]['time']
-      delta =  t - otime
-      otime = t
-
-      if seconds:
-        smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(t-self.t0, milestone, delta, maxl)
-
-      else:
-          tt0 = s2hms(t - self.t0)
-          dta = s2hms(delta)
-          smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(tt0, milestone, dta, maxl)
-
-    return smry
+    # ----- #
+    
+    def summary(self):
+        '''
+        Print out a summary of timing so far.
+        '''
+        
+        otime = self.t0
+        
+        maxl = 9
+        for milestone in self.milestones:
+            l = len(milestone) + 1
+            if l > maxl: maxl = l
+            
+        smry = '\n{0:>8} {1:>{3}} {2:>8}\n'.format('Time', 'Milestone', 'Elapsed', maxl)
+        
+        for milestone in self.milestones:
+            t = self.data[milestone]['time']
+            delta =  t - otime
+            otime = t
+            
+            tt0 = s2hms(t - self.t0)
+            dta = s2hms(delta)
+            smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(tt0, milestone, dta, maxl)
+            
+        print(smry)
 
 #--------------------------------------------------------------------------------#
 
@@ -1110,20 +1111,12 @@ def now():
 
 #--------------------------------------------------------------------------------#
 
-def s2hms(argu):
+def s2hms(seconds):
     '''
     Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format.
     '''
 
-    # First, ascertain type of argument, and convert to seconds:
-    if type(argu) is int:
-        seconds = argu
-    elif type(argu) is datetime.timedelta:
-        seconds = argu.seconds + 86400*argu.days
-    else:
-        return 0
-
-    # Create output strint, and return:
+    # Create output string, and return:
     hh = int(seconds/3600.0)
     mm = int((seconds - 3600*hh)/60.0)
     ss = int(seconds - 3600*hh - 60*mm)

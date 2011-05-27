@@ -36,7 +36,6 @@ import os
 import re
 import sys
 import optparse
-import subprocess as sp
 import gipsync.core as GC
 
 #--------------------------------------------------#
@@ -440,4 +439,4 @@ else:
 
 # Lastly, print out timing summary:
 if o.timing:
-    print(times.summary())
+    times.summary()
