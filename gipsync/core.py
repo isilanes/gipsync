@@ -55,21 +55,21 @@ def fitit(path,limit=None):
 #--------------------------------------------------------------------------------#
 
 def hashof(fn):
-  '''
-  Calc hash function for file.
-  '''
+    '''
+    Calc hash function for file.
+    '''
 
-  h = hashlib.md5()
+    h = hashlib.md5()
 
-  f = open(fn,'rb')
-  while True:
-    t = f.read(4096)
-    if len(t) == 0:
-      break
-    h.update(t)
-  f.close()
+    f = open(fn,'rb')
+    while True:
+        t = f.read(4096)
+        if len(t) == 0:
+            break
+        h.update(t)
+    f.close()
   
-  return h.hexdigest()
+    return h.hexdigest()
 
 #--------------------------------------------------------------------------------#
 
@@ -137,7 +137,7 @@ class Repositories:
       self.gpgcom       = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
       self.walked       = 0            # total considered files
       self.hashed       = 0            # total files for which hash was calculated
-      self.diff         = repodiff()   # difference between repos
+      self.diff         = RepoDiff()   # difference between repos
       self.options      = opt          # optparse options
       self.last_action  = la
       self.really_do    = False
@@ -853,7 +853,7 @@ def bytes2size(bytes):
 
 #--------------------------------------------------------------------------------#
 
-class repodiff:
+class RepoDiff:
     '''
     An object to store differences between local/remote repos.
     '''

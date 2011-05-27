@@ -35,10 +35,6 @@ Then, in some other computer:
 import os
 import re
 import sys
-import copy
-import zlib
-import shutil
-import hashlib
 import optparse
 import gipsync.core as GC
 
@@ -115,287 +111,6 @@ parser.add_option("-l", "--limit-bw",
 
 #--------------------------------------------------------------------------------#
 
-def fitit(path,limit=None):
-  '''
-  Make a given string (path) fit in the screen width.
-  '''
-
-  # If not explicitly given, make "limit" be terminal width:
-  if not limit:
-      cmnd  = "stty size | awk '{print $2 - 13}'"
-      s = sp.Popen(cmnd,stdout=sp.PIPE,shell=True)
-      limit = s.communicate()[0]
-      try:
-          limit = int(limit)
-      except:
-          limit = 80
-
-  if len(path) < limit:
-      return path
-
-  parts = os.path.split(path)
-
-  newpath = parts[1]
-
-  limit = limit - len(newpath) - 3
-
-  if limit < 1:
-      return path
-
-  npath = parts[0]
-  while len(npath) > limit:
-    nparts = os.path.split(npath)
-    tail   = nparts[1]
-    if len(tail) > 3:
-        tail = tail[0]+'..'
-
-    newpath = os.path.join(tail,newpath)
-    npath   = nparts[0]
-    limit   = limit - 3
-
-    if not npath:
-        break
-
-  newpath = os.path.join(nparts[0],newpath)
-
-  return newpath
-
-#--------------------------------------------------------------------------------#
-
-def hashof(fn):
-  '''
-  Calc hash function for file.
-  '''
-
-  h = hashlib.md5()
-
-  f = open(fn,'rb')
-  while True:
-    t = f.read(4096)
-    if len(t) == 0:
-      break
-    h.update(t)
-  f.close()
-  
-  return h.hexdigest()
-
-#--------------------------------------------------------------------------------#
-
-class fileitem:
-    '''
-    Each of the items of the list of local or remote files, holding its characteristics.
-    '''
-
-    def __init__(self, name=None):
-        self.name         = name
-
-        self.size_read    = 0
-        self.size_local   = 0
-        self.size_remote  = 0
-
-        self.mtime_read   = 0
-        self.mtime_local  = 0
-        self.mtime_remote = 0
-
-        self.hash_read    = None
-        self.hash_local   = None
-        self.hash_remote  = None
-
-    def fullname(self):
-        '''
-        Return full (local) name of file.
-        '''
-        return '%s/%s' % (repos.path_local, self.name)
-
-    def get_hash(self):
-        '''
-        Calc hash function for fileitem
-        '''
-        return hashof(self.fullname())
-
-    def get_size(self):
-        '''
-        Calc file size for fileitem.
-        '''
-        self.size_local = os.path.getsize(self.fullname())
-
-#--------------------------------------------------------------------------------#
-
-def bytes2size(bytes):
-    '''
-    Get a number of bytes, and return in human-friendly form (kB, MB, etc).
-    '''
-    units = ['B', 'kB', 'MB', 'GB']
-    
-    i = 0
-    sz = bytes
-    while sz > 1024:
-        sz = sz/1024.0
-        i  += 1
-
-    return '%.2f %s' % (sz, units[i])
-
-#--------------------------------------------------------------------------------#
-
-class repodiff:
-    '''
-    An object to store differences between local/remote repos.
-    '''
-
-    def __init__(self):
-        # Files that exist only in local repo;
-        self.local      = [] # list of filenames
-        self.local_hash = {} # dict of hash -> filename 
-
-        # Files that exist only in remote repo:
-        self.remote = []      # list of filenames
-        self.remote_hash = {} # dict of hash -> filename 
-
-        # Files that exist in both repos, but are newer in local:
-        self.newlocal = [] # list of filenames
-        self.newlocal_hash = {} # dict of hash -> filename 
-
-        # Files that exist in both repos, but are newer in remote:
-        self.newremote = [] # list of filenames
-        self.newremote_hash = {} # dict of hash -> filename 
-
-    # ----- #
-
-    def sort(self):
-        self.local     = sorted(self.local)
-        self.remote    = sorted(self.remote)
-        self.newlocal  = sorted(self.newlocal)
-        self.newremote = sorted(self.newremote)
-
-#--------------------------------------------------------------------------------#
-
-def find_exc(it,patts):
-    '''
-    Return True if item "it" matches some pattern in "patts", False otherwise.
-    '''
-
-    found = False
-    for patt in patts:
-        if patt in it:
-            found = True
-            break
-
-    return found
-
-#--------------------------------------------------------------------------------#
-
-def doit(command,level=1,fatal_errors=True):
-    '''
-    Run/print command, depending on dry-run-nes and verbosity.
-    '''
-
-    global last_action_file
-
-    if not o.verbosity < level:
-        print(command)
-
-    if really_do:
-        f = open(last_action_file,'w')
-        f.write(command)
-        f.close()
-
-        s = sp.Popen(command, shell=True)
-        s.communicate()
-        if fatal_errors:
-            ret = s.returncode
-            if ret != 0:
-                print('Error running command:\n%s' % (command))
-                sys.exit()
-
-#--------------------------------------------------------------------------------#
-
-def last_action():
-    '''
-    Check if gipsync was previously aborted by searching for a "last_action" file.
-    If it was, suggest to perform action in "last_action" file, and exit.
-    '''
-
-    if os.path.isfile(last_action_file):
-        last_action = None
-
-        f = open(last_action_file,'r')
-        for line in f:
-            last_action = line
-        f.close()
-
-        if last_action:
-            print("Aborting: command aborted from previous run:\n")
-            print(last_action+'\n')
-            print("Please do the following:")
-            print(" 1 - Bring the above command to end by hand")
-            print(" 2 - Delete file {0}".format(last_action_file))
-            print(" 3 - Run gipsync again.")
-            sys.exit()
-
-#--------------------------------------------------------------------------------#
-
-def collect_sizes(dir):
-    '''
-    Collect the size of all data in remote repo (mounted locally by SSHFS).
-    '''
-
-    sizes = {}
-
-    for path, dirs, files in os.walk(dir):
-        print(path)
-        if os.path.basename(path) == 'data':
-            for file in files:
-                fn = os.path.join(path,file)
-                sz = os.path.getsize(fn)
-                mt = os.path.getmtime(fn)
-                
-                k = '%i.%s' % (int(mt),fn)
-                sizes[k] = sz
-                sys.stdout.write('.') # "progress bar"
-            print('')
-
-    return sizes
-
-#--------------------------------------------------------------------------------#
-
-def delete_asked(asizes,todelete):
-    '''
-    Delete files from pivot dir, until given size is reached.
-    '''
-
-    deleted = 0
-    idel    = 0
-    while len(asizes):
-        x = asizes.pop(0)
-        xplit = x.split('.')
-        datex = int(xplit[0])
-        jfn = '.'.join(xplit[1:])
-        fn  = os.path.basename(jfn)
-
-        idel += 1
-        deleted += int(sizes[x])
-
-        ago = (tn - datex)/86400.0
-
-        fmt = '{0:>4d}/{1}  {2}  {3:>10}  {4:>10}  {5:>6.2f} d'
-        print(fmt.format(idel, tfiles, fn, bytes2size(sizes[x]), bytes2size(deleted), ago))
-        os.unlink(jfn)
-
-        if deleted > todelete:
-            return True
-
-#--------------------------------------------------------------------------------#
-
-def say(string=None):
-    '''
-    Print out a message.
-    '''
-
-    if string:
-        print('\033[1m%s\033[0m' % (string))
-
-#--------------------------------------------------------------------------------#
-
 # --- Initialization --- #
 
 conf_dir = '%s/.gipsync' % (os.environ['HOME'])
@@ -467,8 +182,8 @@ if o.new:
   times.milestone('Initialize')
 
   # Set variables if checks passed:
-  repos.path_local  = re.sub('/$','',conf['LOCALDIR'])
-  repos.recipient   = prefs['RECIPIENT']
+  repos.path_local = re.sub('/$','',conf['LOCALDIR'])
+  repos.recipient  = prefs['RECIPIENT']
 
   # Traverse source and get list of file hashes:
   repos.walk()
@@ -502,7 +217,7 @@ elif o.delete:
     tn = T.now()
 
     # Get info:
-    sizes = collect_sizes(dir)
+    sizes = GC.collect_sizes(dir)
 
     # Sort info by date:
     asizes = [x for x in sizes]
@@ -516,7 +231,7 @@ elif o.delete:
 
     goon = True
     while goon:
-        returned = delete_asked(asizes, todelete)
+        returned = GC.delete_asked(asizes, todelete)
         if returned:
             string = 'How many MBs do you want to delete?: '
             todelete = input(string)
@@ -587,18 +302,18 @@ else:
 
     fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
     string = fmt.format(what, repos.path_local)
-    say(string)
+    GC.say(string)
 
     # --- Read remote data --- #
 
     # Sync local proxy repo with remote repo:
     string = 'Downloading index.dat...'
-    say(string)
+    GC.say(string)
     repos.get_index() # first download only index.dat.gpg
 
     # Get remote md5tree:
     string = 'Reading remote md5tree...'
-    say(string)
+    GC.say(string)
     repos.read_remote()
 
     times.milestone('Read remote')
@@ -607,7 +322,7 @@ else:
 
     # Read local file hashes from conf (for those files that didn't change):
     string = 'Reading local md5tree...'
-    say(string)
+    GC.say(string)
     hash_file = '{0}/{1}.md5'.format(conf_dir, what)
     repos.read(hash_file)
 
@@ -620,7 +335,7 @@ else:
 
     # Traverse source and get list of file hashes:
     string = 'Finding new/different local files...'
-    say(string)
+    GC.say(string)
     repos.walk()
 
     times.milestone('Dir walk')
@@ -629,14 +344,14 @@ else:
 
     # Save local hashes, be it dry or real run:
     string = 'Saving local data...'
-    say(string)
+    GC.say(string)
     repos.save(hash_file)
 
     # --- Actually do stuff --- #
 
     # Compare remote and local md5 trees:
     string = 'Comparing remote/local...'
-    say(string)
+    GC.say(string)
     repos.compare()
 
     times.milestone('Compare')
@@ -671,19 +386,19 @@ else:
         if repos.really_do:
             if not o.safe:
                 string = 'Deleting remote files...'
-                say(string)
+                GC.say(string)
                 repos.nuke_remote()
                 times.milestone('Nuke up')
 
             # Safe or not safe, upload:
             string = 'Uploading...'
-            say(string)
+            GC.say(string)
             repos.upload()
             times.milestone('Upload')
 
             # Write index file to remote repo:
             string = 'Saving index.dat remotely...'
-            say(string)
+            GC.say(string)
             repos.save('index.dat', local=False)
 
     ############
@@ -723,7 +438,7 @@ else:
 
     # Cleanup:
     string = 'Cleaning up...'
-    say(string)
+    GC.say(string)
     repos.clean()
 
     times.milestone('Finalize')
