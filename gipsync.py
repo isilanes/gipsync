@@ -594,7 +594,7 @@ else:
     # Sync local proxy repo with remote repo:
     string = 'Downloading index.dat...'
     say(string)
-    repos.repo_io(what='index') # first download only index.dat.gpg
+    repos.get_index() # first download only index.dat.gpg
 
     # Get remote md5tree:
     string = 'Reading remote md5tree...'

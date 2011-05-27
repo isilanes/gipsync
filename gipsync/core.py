@@ -126,21 +126,21 @@ class Repositories:
   '''
 
   def __init__(self,opt=None,la=None):
-      self.path_local       = None      # root path of local repo
-      self.files            = {}        # dict of filename/file object
-      self.files_read       = {}        # dict of file names:true (to check pertenence)
-      self.files_local      = {}        # dict of file names:true (to check pertenence)
-      self.files_remote     = {}        # dict of file names:true (to check pertenence)
-      self.recipient        = None      # recipient of GPG encryption
-      self.excludes         = {}        # excluded files (patterns)
-      self.tmpdir           = None      # temporary directory
-      self.gpgcom           = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
-      self.walked           = 0            # total considered files
-      self.hashed           = 0            # total files for which hash was calculated
-      self.diff             = repodiff()   # difference between repos
-      self.options          = opt          # optparse options
-      self.last_action      = la
-      self.really_do        = False
+      self.path_local   = None      # root path of local repo
+      self.files        = {}        # dict of filename/file object
+      self.files_read   = {}        # dict of file names:true (to check pertenence)
+      self.files_local  = {}        # dict of file names:true (to check pertenence)
+      self.files_remote = {}        # dict of file names:true (to check pertenence)
+      self.recipient    = None      # recipient of GPG encryption
+      self.excludes     = {}        # excluded files (patterns)
+      self.tmpdir       = None      # temporary directory
+      self.gpgcom       = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
+      self.walked       = 0            # total considered files
+      self.hashed       = 0            # total files for which hash was calculated
+      self.diff         = repodiff()   # difference between repos
+      self.options      = opt          # optparse options
+      self.last_action  = la
+      self.really_do    = False
 
       # rsync command:
       try:
@@ -173,8 +173,6 @@ class Repositories:
             
         self.files_read[k]       = True
         self.files[k].hash_read  = av[0]
-        #self.files[k].size_read  = long(float(av[1]))
-        #self.files[k].mtime_read = long(float(av[2]))
         self.files[k].size_read  = float(av[1])
         self.files[k].mtime_read = float(av[2])
 
@@ -812,32 +810,19 @@ class Repositories:
 
   # ----- #
 
-  def repo_io(self, up=False, what='all'):
+  def get_index(self):
       '''
-      This function makes the I/O to the online repo. Basically, it rsyncs the local
-      proxy repo (which is an intermediate) to the online one, before and after manipulation,
-      in the correct order (I hope).
+      Gets the remote index.dat file.
       '''
-      if what == 'all':
-          # Sync all repo data:
-          if up: fmt = '{0.rsync} -vh --progress --delete {0.proxy}/ {0.remote}/'
-          else:  fmt = '{0.rsync} -vh --progress --delete {0.remote}/ {0.proxy}/'
-        
-          cmnd = fmt.format(self)
+      
+      # Build command:
+      cmnd1 = '{0.rsync}'.format(self)
+      cmnd2 = '  {0.remote}/index.dat.gpg'.format(self)
+      cmnd3 = '  {0.tmpdir}/'.format(self)
+      
+      cmnd = cmnd1 + cmnd2 + cmnd3
 
-      else:
-          # Then operate only on index.dat.gpg
-          if up:
-              pass # meaningless
- 
-          else:
-              # Download remote index.dat:
-              cmnd1 = '{0.rsync}'.format(self)
-              cmnd2 = '  {0.remote}/index.dat.gpg'.format(self)
-              cmnd3 = '  {0.tmpdir}/'.format(self)
-              
-              cmnd = cmnd1 + cmnd2 + cmnd3
-
+      # Print command if requested:
       if self.options.verbosity > 1:
           print('\n' + cmnd1 + '\n' + cmnd2 + '\n' + cmnd3 + '\n')
 
