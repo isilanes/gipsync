@@ -481,7 +481,7 @@ class Repositories:
 
           # Finally, upload all of them from tmpdir to remote repo:
           cmnd = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.remote}/data/'.format(self,tmpfile)
-          self.doit(cmnd,2)
+          self.doit(cmnd,2,fatal_errors=False)
           os.unlink(tmpfile)
 
           # Log changes:
@@ -639,7 +639,7 @@ class Repositories:
       fmt  = '{0.rsync} -vh --progress {0.remote}/data/ --files-from={1}'
       fmt += ' {0.tmpdir}/data/'
       cmnd = fmt.format(self,tmpfile)
-      self.doit(cmnd,2)
+      self.doit(cmnd,2,fatal_errors=False)
       os.unlink(tmpfile)
 
       # List of files we just downloaded:
