@@ -1,115 +1,8 @@
-def peich():
-    print('pedo')
-
-'''
-GPG/rsync
-(c) 2008-2011, Iñaki Silanes
-
-LICENSE
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License (version 2), as
-published by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-for more details (http://www.gnu.org/licenses/gpl.txt).
-
-DESCRIPTION
-
-Uses a remote destination to store checksums (MD5s) and GPG-encoded versions of local files, 
-to sync with other computers.
-
-USAGE
-
-To upload local files (defined by ~/.gipsync/blah.conf) to remote ("pivot") site:
-
-% gipsync.py blah -u
-
-Then, in some other computer:
-
-% gipsync.py blah
-'''
-
 import os
-import re
-import sys
-import copy
-import zlib
 import shutil
-import hashlib
-import optparse
-import Time as T
 import System as S
 import FileManipulation as FM
 import DataManipulation as DM
-import subprocess as sp
-
-#--------------------------------------------------#
-
-# Read arguments:
-parser = optparse.OptionParser()
-
-parser.add_option("-u", "--up",
-                  dest="up",
-                  help="If set, upload files. Default: download.",
-                  action="store_true",
-		  default=False)
-
-parser.add_option("-v", "--verbose",
-                  dest="verbosity",
-                  help="Increase verbosity level by 1 for each call of this option. Default: 0.",
-                  action="count",
-		  default=0)
-
-parser.add_option("-s", "--safe",
-                  help="Safe mode: do not delete any local or remote file, please. Default: unsafe.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-k", "--keep",
-                  help="Do not delete the generated temporary dir. Default: delete after use.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-S", "--size-control",
-                  dest='size_control',
-                  help="Do NOT upload files, just pretend you did. Default: if true run, upload new and diff files.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-T", "--timing",
-                  help="Measure elapsed time for different parts of the program, then show a summary in the end. Default: don't.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-d", "--delete",
-                  help="Files will be deleted, starting from oldest, until DELETE megabytes are freed. Default: None",
-		  type=float,
-                  default=None)
-
-parser.add_option("-n", "--new",
-                  help="Create a new repo, from a config dir. Initial index file will be that of local reference. Default: False.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-c", "--sync",
-                  help="Sync remote repo to local (e.g. to delete files). Default: False.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-f", "--force-hash",
-                  help="Check hashes of local files (to check for updates), even if mtime has not changed with respect to log. Default: only calculate hashes of files with updated mtime.",
-		  action="store_true",
-		  default=False)
-
-parser.add_option("-l", "--limit-bw",
-                  help="Limit bandwidth usage to LIMIT kB/s. Default: no limit.",
-                  metavar='LIMIT',
-		  default=0)
-
-(o,args) = parser.parse_args()
 
 #--------------------------------------------------------------------------------#
 
@@ -219,30 +112,36 @@ class fileitem:
 
 #--------------------------------------------------------------------------------#
 
-class repositories:
+class Repositories:
   '''
   All the data about both local and remote repos.
   '''
 
-  def __init__(self):
-      self.path_local   = None      # root path of local repo
-      #self.proxy        = None      # root path of repo proxy
-      self.files        = {}        # dict of filename/file object
-      self.files_read   = {}        # dict of file names:true (to check pertenence)
-      self.files_local  = {}        # dict of file names:true (to check pertenence)
-      self.files_remote = {}        # dict of file names:true (to check pertenence)
-      self.recipient    = None      # recipient of GPG encryption
-      self.excludes     = {}        # excluded files (patterns)
-      self.tmpdir       = None      # temporary directory
-      self.gpgcom       = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
-      self.walked       = 0            # total considered files
-      self.hashed       = 0            # total files for which hash was calculated
-      self.diff         = repodiff()   # difference between repos
+  def __init__(self,opt=None,laf=None):
+      self.path_local       = None      # root path of local repo
+      self.files            = {}        # dict of filename/file object
+      self.files_read       = {}        # dict of file names:true (to check pertenence)
+      self.files_local      = {}        # dict of file names:true (to check pertenence)
+      self.files_remote     = {}        # dict of file names:true (to check pertenence)
+      self.recipient        = None      # recipient of GPG encryption
+      self.excludes         = {}        # excluded files (patterns)
+      self.tmpdir           = None      # temporary directory
+      self.gpgcom           = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
+      self.walked           = 0            # total considered files
+      self.hashed           = 0            # total files for which hash was calculated
+      self.diff             = repodiff()   # difference between repos
+      self.options          = opt          # optparse options
+      self.last_action_file = laf
+      self.really_do        = False
 
       # rsync command:
-      if o.limit_bw:
+      try:
+          lim = int(self.options.limit_bw)
+      except:
+          lim = None
+      if lim:
           try:
-              self.rsync = 'rsync -rto --bwlimit={0:1d}'.format(int(o.limit_bw))
+              self.rsync = 'rsync -rto --bwlimit={0:1d}'.format(lim)
           except:
               self.rsync = 'rsync -rto'
       else:
@@ -351,7 +250,7 @@ class repositories:
             except:
                 time_differ = True
 
-            if o.force_hash or time_differ:
+            if self.options.force_hash or time_differ:
 	        # Calc hash and save data:
                 try:
                     old_hash = self.files[fname].hash_read
@@ -363,7 +262,7 @@ class repositories:
                 
                 #if old_hash != new_hash: # (avoid mtime-ing unchanged files)
                 if True: # mtime all files, even unchanged ones
-                    if o.verbosity > 0:
+                    if self.options.verbosity > 0:
                         print('[MD5] %s' % (fitit(fname)))
                         
                     self.files[fname].hash_local = new_hash
@@ -381,7 +280,7 @@ class repositories:
                 self.files[fname].size_local  = self.files[fname].size_read
                 self.files[fname].mtime_local = self.files[fname].mtime_read
 
-                if o.verbosity > 2: # VERY verbose!
+                if self.options.verbosity > 2: # VERY verbose!
                     print('[SKIP]: %s' % (fitit(fname)))
 
   # ----- #
@@ -413,7 +312,7 @@ class repositories:
           tfn = '%s/%s' % (self.tmpdir, fn)
           string = ''
 
-          if o.new:
+          if self.options.new:
               # Then we are creating a new repo.
               for lfn in self.files_local:
                   v = self.files[lfn]
@@ -439,7 +338,7 @@ class repositories:
           cmnd2 = ' "{0}.gpg" '.format(tfn)
           cmnd3 = ' "{0}/{1}.gpg"'.format(self.remote, fn)
 
-          if o.verbosity > 1:
+          if self.options.verbosity > 1:
               print('\n' + cmnd1)
               print(' '  + cmnd2)
               print(' '  + cmnd3 + '\n')
@@ -456,7 +355,7 @@ class repositories:
     fn   = 'index.dat'
     cmnd = '{0.gpgcom} -o "{0.tmpdir}/{1}" -d "{0.tmpdir}/{1}.gpg"'.format(self, fn)
 
-    if o.verbosity > 0:
+    if self.options.verbosity > 0:
         print('\n'+cmnd)
     
     S.cli(cmnd)
@@ -503,14 +402,14 @@ class repositories:
                     if lmt < rmt:
                         self.diff.newremote.append(k)
                         self.diff.newremote_hash[v.hash_remote] = k
-                        if o.verbosity > 0:
+                        if self.options.verbosity > 0:
                             fmt = '\ndiff: local [%s] -- remote [\033[32m%s\033[0m] %s'
                             print(fmt % (T.e2d(lmt), T.e2d(rmt), k))
 
-                    elif lmt > rmt or (o.up and o.force_hash):
+                    elif lmt > rmt or (self.options.up and self.options.force_hash):
                         self.diff.newlocal.append(k)
                         self.diff.newlocal_hash[v.hash_local] = k
-                        if o.verbosity > 0:
+                        if self.options.verbosity > 0:
                             fmt = '\ndiff: local [\033[32m%s\033[0m] -- remote [%s] %s'
                             print(fmt % (T.e2d(lmt), T.e2d(rmt), k))
 
@@ -528,7 +427,7 @@ class repositories:
                 self.diff.remote_hash[v.hash_remote] = k
 
     # Print summaries if enough verbosity:
-    if o.verbosity > 1:
+    if self.options.verbosity > 1:
         print("\nLocal:")
         for k,v in self.diff.local_hash.items():
             print(k,v)
@@ -557,9 +456,9 @@ class repositories:
       file_list.extend(self.diff.newlocal)
       file_list.extend(self.diff.local)
 
-      if really_do and file_list:
+      if self.really_do and file_list:
           # First encrypt files to tmp dir:
-          self.encrypt(file_list, o.size_control)
+          self.encrypt(file_list, self.options.size_control)
 
           # Build list of files to upload from tmpdir to remote repo:
           tmpfile = '{0}/filelist.txt'.format(self.tmpdir)
@@ -603,7 +502,7 @@ class repositories:
 
       # Only GPG if not GPGed yet:
       if not os.path.isfile(lfile) and not control:
-        if o.verbosity < 2:
+        if self.options.verbosity < 2:
             print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
 
         cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.recipient, lfile, v.fullname())
@@ -616,7 +515,7 @@ class repositories:
       Remove the files not present (or newer) locally from remote repo.
       '''
 
-      if really_do:
+      if self.really_do:
           fn_list = []
           nuke_some = False
 
@@ -648,12 +547,12 @@ class repositories:
 
   # ----- #
 
-  def enumerate(self,up=o.up,summary=True):
-    if up:
-      if not o.safe:
+  def enumerate(self,summary=True):
+    if self.options.up:
+      if not self.options.safe:
         self.say_nuke_remote()
 
-      if o.size_control:
+      if self.options.size_control:
         if self.diff.local:
           print('\n')
 
@@ -680,7 +579,7 @@ class repositories:
             print('\033[33m[SYNC]\033[0m %s' % (fitit(name)))
 
     else:
-      if not o.safe:
+      if not self.options.safe:
         self.say_nuke_local()
 
       if self.diff.remote:
@@ -806,7 +705,7 @@ class repositories:
           cmnd = 'rm -f "%s/%s"' % (self.path_local, name)
           doit(cmnd,2)
 
-          if really_do:
+          if self.really_do:
               del self.files_local[name]
 
   # ----- #
@@ -829,8 +728,8 @@ class repositories:
     size_dn = 0
     size_rm = 0
 
-    if not really_do:
-      if o.up:
+    if not self.really_do:
+      if self.options.up:
         for name in self.diff.local:
           size_up += self.files[name].size_local
 
@@ -850,7 +749,7 @@ class repositories:
         for name in self.diff.local:
           size_rm += self.files[name].size_local
 
-    if really_do:
+    if self.really_do:
       up_msj = 'uploaded'
       dn_msj = 'downloaded'
       rm_msj = 'deleted'
@@ -868,11 +767,11 @@ class repositories:
       print('\n{0:30}: {1}'.format('Number of files considered',self.walked))
       print('{0:30}: {1}'.format('Number of hashes calculated',self.hashed))
 
-      if o.up:
+      if self.options.up:
         msj = '{0} {1}'.format("Number of files",up_msj)
         print('{0:30}: {1} ({2})'.format(msj, lsl + lddl, bytes2size(size_up)))
 
-        if not o.safe:
+        if not self.options.safe:
           msj = '{0} {1}'.format("Number of files",rm_msj)
           print('{0:30}: {1} ({2})'.format(msj, lsr, bytes2size(size_rm)))
 
@@ -882,7 +781,7 @@ class repositories:
         msj = '{0} {1}'.format("Number of files",dn_msj)
         print('{0:30}: {1} ({2})'.format(msj, lsr + lddr, bytes2size(size_dn)))
  
-        if not o.safe:
+        if not self.options.safe:
             msj = '{0} {1}'.format("Number of files",rm_msj)
             print('{0:30}: {1} ({2})'.format(msj, lsl, bytes2size(size_rm)))
 
@@ -895,15 +794,13 @@ class repositories:
       Clean up, which basically means rm tmpdir.
       '''
 
-      global last_action_file
-
-      if not o.keep:
+      if not self.options.keep:
           if os.path.isdir(self.tmpdir):
               shutil.rmtree(self.tmpdir)
 
       # Delete last action file:
-      if os.path.isfile(last_action_file):
-          os.unlink(last_action_file)
+      if os.path.isfile(self.last_action_file):
+          os.unlink(self.last_action_file)
 
   # ----- #
 
@@ -913,8 +810,6 @@ class repositories:
       proxy repo (which is an intermediate) to the online one, before and after manipulation,
       in the correct order (I hope).
       '''
-      global last_action_file
-
       if what == 'all':
           # Sync all repo data:
           if up: fmt = '{0.rsync} -vh --progress --delete {0.proxy}/ {0.remote}/'
@@ -935,16 +830,16 @@ class repositories:
               
               cmnd = cmnd1 + cmnd2 + cmnd3
 
-      if o.verbosity > 1:
+      if self.options.verbosity > 1:
           print('\n' + cmnd1 + '\n' + cmnd2 + '\n' + cmnd3 + '\n')
 
       # Save command to file, in case we abort mid-rsync:
-      f = open(last_action_file,'w')
+      f = open(self.last_action_file,'w')
       f.write(cmnd)
       f.close()
 
       # Perform rsync and delete just-in-case file afterwards:
-      cmnd = '{0} && rm -f "{1}"'.format(cmnd, last_action_file)
+      cmnd = '{0} && rm -f "{1}"'.format(cmnd, self.last_action_file)
       S.cli(cmnd)
 
 #--------------------------------------------------------------------------------#
@@ -1012,17 +907,15 @@ def find_exc(it,patts):
 
 #--------------------------------------------------------------------------------#
 
-def doit(command,level=1,fatal_errors=True):
+def doit(command,level=1,fatal_errors=True,laf=None):
     '''
     Run/print command, depending on dry-run-nes and verbosity.
     '''
 
-    global last_action_file
-
-    if not o.verbosity < level:
+    if not self.options.verbosity < level:
         print(command)
 
-    if really_do:
+    if really_do and laf:
         f = open(last_action_file,'w')
         f.write(command)
         f.close()
@@ -1123,338 +1016,3 @@ def say(string=None):
         print('\033[1m%s\033[0m' % (string))
 
 #--------------------------------------------------------------------------------#
-
-# --- Initialization --- #
-
-conf_dir = '%s/.gipsync' % (os.environ['HOME'])
-prefs = FM.conf2dic(conf_dir+'/config')
-times = T.timing()
-last_action_file = '{0}/last_action'.format(conf_dir)
-
-#--------------------------------------------------------------------------------#
-
-####################
-#                  #
-# CREATION SECTION #
-#                  #
-####################
-
-if o.new:
-  tn = T.now()
-
-  try:
-      conf_name = args[0]
-  except:
-      msg = 'You must input config name if you want to create new repo.'
-      sys.exit(msg)
-
-  # Check that conf file exists, and read it:
-  cfile = '{0}/{1}.conf'.format(conf_dir,conf_name)
-  if os.path.isfile(cfile):
-      conf = FM.conf2dic(cfile)
-  else:
-      msg = 'Requested file "{0}" does not exist!'.format(cfile)
-      sys.exit(msg)
-  
-  # Check that repo dir is mounted:
-  pivotdir = prefs['PIVOTDIR']
-  if not os.path.isdir(pivotdir):
-      msg = 'Can not find dir "{0}". Is it mounted?'.format(pivotdir)
-      sys.exit(msg)
-
-  # Create repo dir:
-  proxy_repo = '{0}/{1}'.format(pivotdir, conf['REPODIR'])
-  repos.proxy = proxy_repo
-
-  if not os.path.isdir(proxy_repo):
-    os.mkdir(proxy_repo)
-
-  data_dir = proxy_repo+'/data'
-  if not os.path.isdir(data_dir):
-    os.mkdir(data_dir)
-
-  # Create tmpdir:
-  repos = repositories()
-  repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, conf_name)
-  if not os.path.isdir(repos.tmpdir):
-      os.mkdir(repos.tmpdir)
-
-  # --- Read local data --- #
-
-  # Read local file hashes from conf (for those files that didn't change):
-  hash_file = '{0}/{1}.md5'.format(conf_dir, conf_name)
-  if os.path.isfile(hash_file):
-    repos.read(hash_file)
-
-  # Read local excludes from .excludes:
-  excludes_file = '{0}/{1}.excludes'.format(conf_dir, conf_name)
-  if os.path.isfile(excludes_file):
-    repos.excludes = FM.conf2dic(excludes_file)
-
-  times.milestone('Initialize')
-
-  # Set variables if checks passed:
-  repos.path_local  = re.sub('/$','',conf['LOCALDIR'])
-  repos.recipient   = prefs['RECIPIENT']
-
-  # Traverse source and get list of file hashes:
-  repos.walk()
-
-  times.milestone('Dir walk')
-
-  # Write index file to remote repo:
-  tmpdat = '{0}/index.dat'.format(repos.tmpdir)
-  repos.save('index.dat', local=False)
-
-  times.milestone('Create index')
-
-  # Cleanup:
-  repos.clean()
-
-  times.milestone('Finalize')
-
-####################
-#                  #
-# DELETION SECTION #
-#                  #
-####################
-
-elif o.delete:
-    # Check that repo dir is mounted:
-    dir = prefs['PIVOTDIR']
-    if not os.path.isdir(dir):
-        msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
-        sys.exit(msg)
-
-    tn = T.now()
-
-    # Get info:
-    sizes = collect_sizes(dir)
-
-    # Sort info by date:
-    asizes = [x for x in sizes]
-    asizes.sort()
-    tfiles = len(asizes)
-
-    # Delete up to freeing requested size,
-    # starting from oldest files:
-
-    todelete = o.delete*1024*1024
-
-    goon = True
-    while goon:
-        returned = delete_asked(asizes, todelete)
-        if returned:
-            string = 'How many MBs do you want to delete?: '
-            todelete = input(string)
-            try:
-                todelete = float(todelete)*1024*1024
-            except:
-                goon = False
-        else:
-            goon = False
-
-    sys.exit()
-
-##################
-#                #
-# UPDATE SECTION #
-#                #
-##################
-
-else:
-  # First of all, check whether there's some unresolved (truncated) action
-  # from a previous run:
-  last_action()
-
-  # Check arguments:
-  if args and args[0] == 'all':
-      args = prefs['ALL'].split(',')
-
-  # Perform actions for each repo named in args:
-  for what in args:
-    repos = repositories()
-
-    repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, what)
-
-    if o.verbosity < 1:
-        repos.gpgcom += ' --no-tty '
-
-    # Read configs:
-    cfile = '{0}/{1}.conf'.format(conf_dir, what)
-    cfg = FM.conf2dic(cfile)
-
-    times.milestone('Read confs')
-
-    # --- Checks --- #
-
-    # Continue or not:
-    cntdir = '{0}/data'.format(repos.tmpdir)
-
-    if not os.path.isdir(cntdir):
-        os.makedirs(cntdir)
-
-    # Config items:
-    if not 'REPODIR' in cfg:
-        sys.exit('Sorry, but REPODIR is not specified in conf file!')
-
-    if not 'LOCALDIR' in cfg:
-        sys.exit('Sorry, but local dir is not specified in conf file!')
-
-    if not 'RECIPIENT' in prefs:
-        sys.exit('Sorry, but RECIPIENT is not specified in global conf file!')
-
-    if not 'REMOTE' in prefs:
-        sys.exit('Sorry, but REMOTE is not specified in global conf file!')
-
-    # Set variables if checks passed:
-    repos.path_local = re.sub('/$','',cfg['LOCALDIR'])
-    repos.recipient = prefs['RECIPIENT']
-    repos.remote = prefs['REMOTE']+'/'+cfg['REPODIR']
-
-    fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
-    string = fmt.format(what, repos.path_local)
-    say(string)
-
-    # --- Read remote data --- #
-
-    # Sync local proxy repo with remote repo:
-    string = 'Downloading index.dat...'
-    say(string)
-    repos.repo_io(what='index') # first download only index.dat.gpg
-
-    # Get remote md5tree:
-    string = 'Reading remote md5tree...'
-    say(string)
-    repos.read_remote()
-
-    times.milestone('Read remote')
-
-    # --- Read local data --- #
-
-    # Read local file hashes from conf (for those files that didn't change):
-    string = 'Reading local md5tree...'
-    say(string)
-    hash_file = '{0}/{1}.md5'.format(conf_dir, what)
-    repos.read(hash_file)
-
-    # Read local excludes from .excludes:
-    excludes_file = '{0}/{1}.excludes'.format(conf_dir, what)
-    if os.path.isfile(excludes_file):
-        repos.excludes = FM.conf2dic(excludes_file)
-
-    times.milestone('Initialize')
-
-    # Traverse source and get list of file hashes:
-    string = 'Finding new/different local files...'
-    say(string)
-    repos.walk()
-
-    times.milestone('Dir walk')
-
-    # --- Write back local data --- #
-
-    # Save local hashes, be it dry or real run:
-    string = 'Saving local data...'
-    say(string)
-    repos.save(hash_file)
-
-    # --- Actually do stuff --- #
-
-    # Compare remote and local md5 trees:
-    string = 'Comparing remote/local...'
-    say(string)
-    repos.compare()
-
-    times.milestone('Compare')
-
-    # Sort lists, for easy reading:
-    repos.diff.sort()
-
-    times.milestone('Sort diff')
-
-    # Act according to differences in repos:
-
-    ##########
-    # Upload #
-    ##########
-    if o.up:
-        really_do = False
-        answer = False
-
-        # Print summary/info:
-        repos.enumerate()
-
-        # Ask for permission to proceed, if there are changes:
-        lsl = len(repos.diff.local)
-        lsr = len(repos.diff.remote)
-        lddl = len(repos.diff.newlocal)
-
-        if lsl + lsr + lddl > 0:
-            answer = input('\nAct accordingly (y/N)?: ')
-            if answer and 'y' in answer:
-                really_do = True
-
-        if really_do:
-            if not o.safe:
-                string = 'Deleting remote files...'
-                say(string)
-                repos.nuke_remote()
-                times.milestone('Nuke up')
-
-            # Safe or not safe, upload:
-            string = 'Uploading...'
-            say(string)
-            repos.upload()
-            times.milestone('Upload')
-
-            # Write index file to remote repo:
-            string = 'Saving index.dat remotely...'
-            say(string)
-            repos.save('index.dat', local=False)
-
-    ############
-    # Download #
-    ############
-    else:
-        really_do = False
-        answer = False
-
-        if not really_do:
-            # Print summary/info:
-            repos.enumerate()
-
-            # Ask for permission to proceed:
-            lsl  = len(repos.diff.local)
-            lsr  = len(repos.diff.remote)
-            lddr = len(repos.diff.newremote)
-
-            if lsl + lsr + lddr > 0:
-                answer = input('\nAct accordingly (y/N)?: ')
-                if answer and 'y' in answer:
-                    really_do = True
-
-        if really_do:
-            if not o.safe:
-                # Delete files only in local:
-                repos.nuke_local()
-                times.milestone('Nuke local')
-
-            # Safe or not, download:
-            repos.download()
-            times.milestone('Download')
-
-            # Save logs:
-            repos.save(hash_file)
-            repos.save('index.dat', local=False)
-
-    # Cleanup:
-    string = 'Cleaning up...'
-    say(string)
-    repos.clean()
-
-    times.milestone('Finalize')
-
-# Lastly, print out timing summary:
-if o.timing:
-    print(times.summary())
