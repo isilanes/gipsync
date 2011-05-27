@@ -2,8 +2,7 @@ import os
 import shutil
 import hashlib
 import System as S
-import FileManipulation as FM
-import DataManipulation as DM
+#import DataManipulation as DM
 
 #--------------------------------------------------------------------------------#
 
@@ -68,7 +67,7 @@ def hashof(fn):
             break
         h.update(t)
     f.close()
-  
+    
     return h.hexdigest()
 
 #--------------------------------------------------------------------------------#
@@ -159,7 +158,7 @@ class Repositories:
 
   def read(self, fromfile):
     if os.path.isfile(fromfile):
-      for k,v in FM.conf2dic(fromfile,separator='|').items():
+      for k,v in conf2dic(fromfile,separator='|').items():
         self.files_read[k] = True
         
         av = v.split(':')
@@ -306,7 +305,7 @@ class Repositories:
               fmt = '{0}|{1.hash_local}:{1.size_local}:{1.mtime_local}\n'
               string += fmt.format(lfn, v)
 
-          string = DM.mk_proper_utf(string)
+          #string = DM.mk_proper_utf(string)
           f = open(fn,'w')
           f.write(string)
           f.close()
@@ -367,7 +366,7 @@ class Repositories:
     S.cli(cmnd)
     conf = '%s/%s' % (self.tmpdir, fn)
 
-    dict = FM.conf2dic(conf,separator='|')
+    dict = conf2dic(conf,separator='|')
 
     for k,v in dict.items():
       av = v.split(':')
@@ -1020,5 +1019,26 @@ class LastAction:
                 print(" 2 - Delete file {0}".format(self.file))
                 print(" 3 - Run gipsync again.")
                 sys.exit()
+
+#--------------------------------------------------------------------------------#
+
+def conf2dic(fname,separator='='):
+   '''
+   Read a configuration file and interpret its lines as "key=value" pairs, assigning them
+   to a dictionary, and returning it.
+     fname = file name of the configuration file to read.
+   '''
+
+   cf = {}
+
+   f = open(fname,'r')
+   for line in f:
+       line = line.replace('\n','')
+       if line and not line[0] == '#': # ignore blank lines and comments
+           aline = line.split(separator)
+           cf[aline[0]] = separator.join(aline[1:])
+   f.close()
+
+   return cf
 
 #--------------------------------------------------------------------------------#

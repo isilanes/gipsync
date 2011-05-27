@@ -37,12 +37,9 @@ import re
 import sys
 import optparse
 import gipsync.core as GC
+import subprocess as sp
 
 import Time as T
-import System as S
-import FileManipulation as FM
-import DataManipulation as DM
-import subprocess as sp
 
 #--------------------------------------------------#
 
@@ -114,7 +111,7 @@ parser.add_option("-l", "--limit-bw",
 # --- Initialization --- #
 
 conf_dir = '%s/.gipsync' % (os.environ['HOME'])
-prefs = FM.conf2dic(conf_dir+'/config')
+prefs = GC.conf2dic(conf_dir+'/config')
 times = T.timing()
 la = GC.LastAction()
 la.file = '{0}/last_action'.format(conf_dir)
@@ -139,7 +136,7 @@ if o.new:
   # Check that conf file exists, and read it:
   cfile = '{0}/{1}.conf'.format(conf_dir,conf_name)
   if os.path.isfile(cfile):
-      conf = FM.conf2dic(cfile)
+      conf = GC.conf2dic(cfile)
   else:
       msg = 'Requested file "{0}" does not exist!'.format(cfile)
       sys.exit(msg)
@@ -177,7 +174,7 @@ if o.new:
   # Read local excludes from .excludes:
   excludes_file = '{0}/{1}.excludes'.format(conf_dir, conf_name)
   if os.path.isfile(excludes_file):
-    repos.excludes = FM.conf2dic(excludes_file)
+    repos.excludes = GC.conf2dic(excludes_file)
 
   times.milestone('Initialize')
 
@@ -270,7 +267,7 @@ else:
 
     # Read configs:
     cfile = '{0}/{1}.conf'.format(conf_dir, what)
-    cfg = FM.conf2dic(cfile)
+    cfg = GC.conf2dic(cfile)
 
     times.milestone('Read confs')
 
@@ -329,7 +326,7 @@ else:
     # Read local excludes from .excludes:
     excludes_file = '{0}/{1}.excludes'.format(conf_dir, what)
     if os.path.isfile(excludes_file):
-        repos.excludes = FM.conf2dic(excludes_file)
+        repos.excludes = GC.conf2dic(excludes_file)
 
     times.milestone('Initialize')
 
