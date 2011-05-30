@@ -336,74 +336,74 @@ else:
       # Upload #
       ##########
       if o.up:
-        repos.really_do = False
-        answer = False
-
-        # Print summary/info:
-        repos.enumerate()
-
-        # Ask for permission to proceed, if there are changes:
-        lsl = len(repos.diff.local)
-        lsr = len(repos.diff.remote)
-        lddl = len(repos.diff.newlocal)
-
-        if lsl + lsr + lddl > 0:
-            answer = input('\nAct accordingly (y/N)?: ')
-            if answer and 'y' in answer:
-                repos.really_do = True
-
-        if repos.really_do:
-            if not o.safe:
-                string = 'Deleting remote files...'
-                GC.say(string)
-                repos.nuke_remote()
-                times.milestone('Nuke up')
-
-            # Safe or not safe, upload:
-            string = 'Uploading...'
-            GC.say(string)
-            repos.upload()
-            times.milestone('Upload')
-
-            # Write index file to remote repo:
-            string = 'Saving index.dat remotely...'
-            GC.say(string)
-            repos.save('index.dat', local=False)
+          repos.really_do = False
+          answer = False
+          
+          # Print summary/info:
+          repos.enumerate()
+          
+          # Ask for permission to proceed, if there are changes:
+          lsl = len(repos.diff.local)
+          lsr = len(repos.diff.remote)
+          lddl = len(repos.diff.newlocal)
+          
+          if lsl + lsr + lddl > 0:
+              answer = input('\nAct accordingly (y/N)?: ')
+              if answer and 'y' in answer:
+                  repos.really_do = True
+                  
+          if repos.really_do:
+              if not o.safe:
+                  string = 'Deleting remote files...'
+                  GC.say(string)
+                  repos.nuke_remote()
+                  times.milestone('Nuke up')
+          
+          # Safe or not safe, upload:
+          string = 'Uploading...'
+          GC.say(string)
+          repos.upload()
+          times.milestone('Upload')
+          
+          # Write index file to remote repo:
+          string = 'Saving index.dat remotely...'
+          GC.say(string)
+          repos.save('index.dat', local=False)
 
       ############
       # Download #
       ############
       else:
-        repos.really_do = False
-        answer = False
+          repos.really_do = False
+          answer = False
+          
+          if not repos.really_do:
+              # Print summary/info:
+              repos.enumerate()
+              
+              # Ask for permission to proceed:
+              lsl  = len(repos.diff.local)
+              lsr  = len(repos.diff.remote)
+              lddr = len(repos.diff.newremote)
+              
+              if lsl + lsr + lddr > 0:
+                  answer = input('\nAct accordingly (y/N)?: ')
+                  if answer and 'y' in answer:
+                      repos.really_do = True
+                      
+          if repos.really_do:
+              if not o.safe:
+                  # Delete files only in local:
+                  repos.nuke_local()
+                  times.milestone('Nuke local')
 
-        if not repos.really_do:
-            # Print summary/info:
-            repos.enumerate()
+              # Safe or not, download:
+              repos.download()
+              times.milestone('Download')
 
-            # Ask for permission to proceed:
-            lsl  = len(repos.diff.local)
-            lsr  = len(repos.diff.remote)
-            lddr = len(repos.diff.newremote)
-
-            if lsl + lsr + lddr > 0:
-                answer = input('\nAct accordingly (y/N)?: ')
-                if answer and 'y' in answer:
-                    repos.really_do = True
-
-        if repos.really_do:
-            if not o.safe:
-                # Delete files only in local:
-                repos.nuke_local()
-                times.milestone('Nuke local')
-
-            # Safe or not, download:
-            repos.download()
-            times.milestone('Download')
-
-            # Save logs:
-            repos.save(hash_file)
-            repos.save('index.dat', local=False)
+              # Save logs:
+              repos.save(hash_file)
+              repos.save('index.dat', local=False)
 
       # Cleanup:
       string = 'Cleaning up...'
