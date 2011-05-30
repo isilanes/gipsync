@@ -300,11 +300,6 @@ else:
       hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
       repos.read(hash_file)
       
-      # Read local excludes from .excludes:
-      excludes_file = '{0}/{1}.excludes'.format(cfg.dir, what)
-      if os.path.isfile(excludes_file):
-          repos.excludes = GC.conf2dic(excludes_file)
-      
       times.milestone('Initialize')
       
       # Traverse source and get list of file hashes:

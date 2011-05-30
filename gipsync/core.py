@@ -225,7 +225,7 @@ class Repositories:
       prs = path.replace(pl+'/','')
 
       # Ignore dif if excluded:
-      if not find_exc(prs,self.excludes):
+      if not find_exc(prs,self.cfg.excludes):
         for file in files:
           self.walked += 1
 
@@ -233,7 +233,7 @@ class Repositories:
 
           # Ignore excluded files and symlinks (in ORs, check first
           # the cheapest and most probable condition, to speed up):
-          if not os.path.islink(fn) and not find_exc(fn,self.excludes):
+          if not os.path.islink(fn) and not find_exc(fn,self.cfg.excludes):
             if path == pl: # current path is root path
                 fname = file
             else: # it's a subdir of root
@@ -431,7 +431,7 @@ class Repositories:
                 self.diff.local_hash[v.hash_local] = k
 
         elif v.hash_remote: # then file exists only remotely
-            if not find_exc(k,self.excludes): # ignore files matching some rule
+            if not find_exc(k,self.cfg.excludes): # ignore files matching some rule
                 self.diff.remote.append(k)
                 self.diff.remote_hash[v.hash_remote] = k
 
@@ -495,27 +495,26 @@ class Repositories:
 
   def encrypt(self, file_list, control=False):
     if file_list:
-      print('\n')
+        print('\n')
 
     for name in file_list:
-
-      v = self.files[name]
-
-      # Log it:
-      if not name in self.files_remote:
-        self.files_remote[name] = True
-
-      # GPG it:
-      fgpg  = '%s.gpg'     % (v.hash_local)
-      lfile = '%s/data/%s' % (self.tmpdir, fgpg)
-
-      # Only GPG if not GPGed yet:
-      if not os.path.isfile(lfile) and not control:
-        if self.options.verbosity < 2:
-            print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
-
-        cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
-        self.doit(cmnd,2)
+        v = self.files[name]
+        
+        # Log it:
+        if not name in self.files_remote:
+            self.files_remote[name] = True
+        
+        # GPG it:
+        fgpg  = '%s.gpg'     % (v.hash_local)
+        lfile = '%s/data/%s' % (self.tmpdir, fgpg)
+        
+        # Only GPG if not GPGed yet:
+        if not os.path.isfile(lfile) and not control:
+            if self.options.verbosity < 2:
+                print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
+                
+            cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
+            self.doit(cmnd,2)
 
   # ----- #
 
@@ -636,7 +635,7 @@ class Repositories:
       f.close()
 
       # Download all of them from repo to tmpdir:
-      fmt  = '{0.rsync} -vh --progress {0.remote}/data/ --files-from={1}'
+      fmt  = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
       fmt += ' {0.tmpdir}/data/'
       cmnd = fmt.format(self,tmpfile)
       self.doit(cmnd,2,fatal_errors=False)
@@ -1158,9 +1157,10 @@ class Configuration:
 
     def read_conf(self, what=None):
         '''
-        Read the configuration for repo named "what".
+        Read the configuration for repo named "what" (both .conf and .excludes files).
         '''
 
+        # Read .conf file for repo:
         cfile = '{0}/{1}.conf'.format(self.dir, what)
         try:
             self.conf = conf2dic(cfile)
@@ -1175,6 +1175,11 @@ class Configuration:
         except:
             print('Could not find variable "LOCALDIR" in configuration')
             sys.exit()
+
+        # Read .excludes file for repo:
+        excludes_file = '{0}/{1}.excludes'.format(self.dir, what)
+        if os.path.isfile(excludes_file):
+            self.excludes = conf2dic(excludes_file)
 
     # ----- #
 
