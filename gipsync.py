@@ -107,11 +107,12 @@ parser.add_option("-l", "--limit-bw",
 
 # --- Initialization --- #
 
-conf_dir = '{0[HOME]}/.gipsync'.format(os.environ)
-prefs = GC.conf2dic(conf_dir+'/config')
 times = GC.Timing()
+cfg = GC.Configuration()
+cfg.dir = '{0[HOME]}/.gipsync'.format(os.environ)
+cfg.read_prefs()
 la = GC.LastAction()
-la.file = '{0}/last_action'.format(conf_dir)
+la.file = '{0}/last_action'.format(cfg.dir)
 
 #--------------------------------------------------------------------------------#
 
@@ -251,118 +252,95 @@ else:
 
   # Check arguments:
   if args and args[0] == 'all':
-      args = prefs['ALL'].split(',')
+      args = cfg.prefs['ALL'].split(',')
 
   # Perform actions for each repo named in args:
   for what in args:
-    repos = GC.Repositories(o,la)
-    repos.prefs = prefs # inform repos object of preferences
+      # Read and check configs:
+      cfg.read_conf(what)
+      cfg.check()
 
-    repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, what)
-
-    if o.verbosity < 1:
-        repos.gpgcom += ' --no-tty '
-
-    # Read configs:
-    cfile = '{0}/{1}.conf'.format(conf_dir, what)
-    cfg = GC.conf2dic(cfile)
-    repos.cfg = cfg # inform repos object of configuration
-
-    times.milestone('Read confs')
-
-    # --- Checks --- #
-
-    # Continue or not:
-    cntdir = '{0}/data'.format(repos.tmpdir)
-
-    if not os.path.isdir(cntdir):
-        os.makedirs(cntdir)
-
-    # Config items:
-    if not 'REPODIR' in cfg:
-        sys.exit('Sorry, but REPODIR is not specified in conf file!')
-
-    if not 'LOCALDIR' in cfg:
-        sys.exit('Sorry, but local dir is not specified in conf file!')
-
-    if not 'RECIPIENT' in prefs:
-        sys.exit('Sorry, but RECIPIENT is not specified in global conf file!')
-
-    if not 'REMOTE' in prefs:
-        sys.exit('Sorry, but REMOTE is not specified in global conf file!')
-
-    # Set variables if checks passed:
-    repos.path_local = re.sub('/$','',cfg['LOCALDIR'])
-    repos.recipient = prefs['RECIPIENT']
-    repos.remote = prefs['REMOTE']+'/'+cfg['REPODIR']
-
-    fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
-    string = fmt.format(what, repos.path_local)
-    GC.say(string)
-
-    # --- Read remote data --- #
-
-    # Sync local proxy repo with remote repo:
-    string = 'Downloading index.dat...'
-    GC.say(string)
-    repos.get_index() # first download only index.dat.gpg
-
-    # Get remote md5tree:
-    string = 'Reading remote md5tree...'
-    GC.say(string)
-    repos.read_remote()
-
-    times.milestone('Read remote')
-
-    # --- Read local data --- #
-
-    # Read local file hashes from conf (for those files that didn't change):
-    string = 'Reading local md5tree...'
-    GC.say(string)
-    hash_file = '{0}/{1}.md5'.format(conf_dir, what)
-    repos.read(hash_file)
-
-    # Read local excludes from .excludes:
-    excludes_file = '{0}/{1}.excludes'.format(conf_dir, what)
-    if os.path.isfile(excludes_file):
-        repos.excludes = GC.conf2dic(excludes_file)
-
-    times.milestone('Initialize')
-
-    # Traverse source and get list of file hashes:
-    string = 'Finding new/different local files...'
-    GC.say(string)
-    repos.walk()
-
-    times.milestone('Dir walk')
-
-    # --- Write back local data --- #
-
-    # Save local hashes, be it dry or real run:
-    string = 'Saving local data...'
-    GC.say(string)
-    repos.save(hash_file)
-
-    # --- Actually do stuff --- #
-
-    # Compare remote and local md5 trees:
-    string = 'Comparing remote/local...'
-    GC.say(string)
-    repos.compare()
-
-    times.milestone('Compare')
-
-    # Sort lists, for easy reading:
-    repos.diff.sort()
-
-    times.milestone('Sort diff')
-
-    # Act according to differences in repos:
-
-    ##########
-    # Upload #
-    ##########
-    if o.up:
+      # Initialize repo:
+      repos = GC.Repositories(o,la,cfg)
+      repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
+      
+      if o.verbosity < 1:
+          repos.gpgcom += ' --no-tty '
+          
+      times.milestone('Read confs')
+      
+      # Continue or not:
+      cntdir = '{0}/data'.format(repos.tmpdir)
+      if not os.path.isdir(cntdir):
+          os.makedirs(cntdir)
+          
+      fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
+      string = fmt.format(what, cfg.conf['LOCALDIR'])
+      GC.say(string)
+      
+      # --- Read remote data --- #
+      
+      # Sync local proxy repo with remote repo:
+      string = 'Downloading index.dat...'
+      GC.say(string)
+      repos.get_index() # first download only index.dat.gpg
+      
+      # Get remote md5tree:
+      string = 'Reading remote md5tree...'
+      GC.say(string)
+      repos.read_remote()
+      
+      times.milestone('Read remote')
+      
+      # --- Read local data --- #
+      
+      # Read local file hashes from conf (for those files that didn't change):
+      string = 'Reading local md5tree...'
+      GC.say(string)
+      hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
+      repos.read(hash_file)
+      
+      # Read local excludes from .excludes:
+      excludes_file = '{0}/{1}.excludes'.format(cfg.dir, what)
+      if os.path.isfile(excludes_file):
+          repos.excludes = GC.conf2dic(excludes_file)
+      
+      times.milestone('Initialize')
+      
+      # Traverse source and get list of file hashes:
+      string = 'Finding new/different local files...'
+      GC.say(string)
+      repos.walk()
+      
+      times.milestone('Dir walk')
+      
+      # --- Write back local data --- #
+      
+      # Save local hashes, be it dry or real run:
+      string = 'Saving local data...'
+      GC.say(string)
+      repos.save(hash_file)
+      
+      # --- Actually do stuff --- #
+      
+      # Compare remote and local md5 trees:
+      string = 'Comparing remote/local...'
+      GC.say(string)
+      repos.compare()
+      
+      times.milestone('Compare')
+      
+      # Sort lists, for easy reading:
+      repos.diff.sort()
+      
+      times.milestone('Sort diff')
+      
+      # Act according to differences in repos:
+      
+      ##########
+      # Upload #
+      ##########
+      if o.up:
         repos.really_do = False
         answer = False
 
@@ -397,10 +375,10 @@ else:
             GC.say(string)
             repos.save('index.dat', local=False)
 
-    ############
-    # Download #
-    ############
-    else:
+      ############
+      # Download #
+      ############
+      else:
         repos.really_do = False
         answer = False
 
@@ -432,12 +410,12 @@ else:
             repos.save(hash_file)
             repos.save('index.dat', local=False)
 
-    # Cleanup:
-    string = 'Cleaning up...'
-    GC.say(string)
-    repos.clean()
+      # Cleanup:
+      string = 'Cleaning up...'
+      GC.say(string)
+      repos.clean()
 
-    times.milestone('Finalize')
+      times.milestone('Finalize')
 
 # Lastly, print out timing summary:
 if o.timing:

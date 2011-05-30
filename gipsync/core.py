@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 import shutil
@@ -101,7 +102,7 @@ class Fileitem:
         '''
         Return full (local) name of file.
         '''
-        return '%s/%s' % (self.repos.path_local, self.name)
+        return '%s/%s' % (self.repos.cfg.conf['LOCALDIR'], self.name)
 
     # --- #
 
@@ -126,24 +127,21 @@ class Repositories:
   All the data about both local and remote repos.
   '''
 
-  def __init__(self,opt=None,la=None):
-      self.path_local   = None      # root path of local repo
+  def __init__(self,opt=None,la=None, cfg=None):
       self.files        = {}        # dict of filename/file object
       self.files_read   = {}        # dict of file names:true (to check pertenence)
       self.files_local  = {}        # dict of file names:true (to check pertenence)
       self.files_remote = {}        # dict of file names:true (to check pertenence)
-      self.recipient    = None      # recipient of GPG encryption
       self.excludes     = {}        # excluded files (patterns)
       self.tmpdir       = None      # temporary directory
       self.gpgcom       = '/usr/bin/gpg --yes  -q' # command to encrypt/decrypt with GPG
-      self.walked       = 0            # total considered files
-      self.hashed       = 0            # total files for which hash was calculated
-      self.diff         = RepoDiff()   # difference between repos
-      self.options      = opt          # optparse options
+      self.walked       = 0          # total considered files
+      self.hashed       = 0          # total files for which hash was calculated
+      self.diff         = RepoDiff() # difference between repos
+      self.options      = opt        # optparse options
       self.last_action  = la
       self.really_do    = False
-      self.prefs        = {}
-      self.cfg          = {}
+      self.cfg          = cfg        # Configuration object holding all config and prefs
 
       # rsync command:
       try:
@@ -221,8 +219,10 @@ class Repositories:
     Perform the acts upon each dir in the dir walk (get mtimes, MD5s, etc).
     '''
 
-    for path, dirs, files in os.walk(self.path_local):
-      prs = path.replace(self.path_local+'/','')
+    pl = self.cfg.conf['LOCALDIR']
+
+    for path, dirs, files in os.walk(pl):
+      prs = path.replace(pl+'/','')
 
       # Ignore dif if excluded:
       if not find_exc(prs,self.excludes):
@@ -234,7 +234,7 @@ class Repositories:
           # Ignore excluded files and symlinks (in ORs, check first
           # the cheapest and most probable condition, to speed up):
           if not os.path.islink(fn) and not find_exc(fn,self.excludes):
-            if path == self.path_local: # current path is root path
+            if path == pl: # current path is root path
                 fname = file
             else: # it's a subdir of root
                 fname = '%s/%s' % (prs, file)
@@ -338,14 +338,14 @@ class Repositories:
           f.close()
 
           # GPG temporary file tfn:
-          fmt = '{0.gpgcom} -r {0.recipient} -o "{0.tmpdir}/{1}.gpg" -e "{2}"'
+          fmt = '{0.gpgcom} -r {0.cfg.prefs[RECIPIENT]} -o "{0.tmpdir}/{1}.gpg" -e "{2}"'
           cmnd = fmt.format(self, fn, tfn)
           self.doit(cmnd,2)
 
           # Upload to remote:
           cmnd1 = '{0} -q '.format(self.rsync)
           cmnd2 = ' "{0}.gpg" '.format(tfn)
-          cmnd3 = ' "{0}/{1}.gpg"'.format(self.remote, fn)
+          cmnd3 = ' "{0}/{1}/{2}.gpg"'.format(self.cfg.prefs['REMOTE'], self.cfg.conf['REPODIR'], fn)
 
           if self.options.verbosity > 1:
               print('\n' + cmnd1)
@@ -480,7 +480,7 @@ class Repositories:
           f.close()
 
           # Finally, upload all of them from tmpdir to remote repo:
-          cmnd = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.remote}/data/'.format(self,tmpfile)
+          cmnd = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/'.format(self,tmpfile)
           self.doit(cmnd,2,fatal_errors=False)
           os.unlink(tmpfile)
 
@@ -514,7 +514,7 @@ class Repositories:
         if self.options.verbosity < 2:
             print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
 
-        cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.recipient, lfile, v.fullname())
+        cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
         self.doit(cmnd,2)
 
   # ----- #
@@ -531,11 +531,11 @@ class Repositories:
           # Create a sftp script file to delete remote files:
           tmpfile = '{0}/nuke_remote.sftp'.format(self.tmpdir)
           f = open(tmpfile,'w')
-          f.write('sftp {0} <<EOF\n'.format(self.prefs['REMOTE']))
+          f.write('sftp {0} <<EOF\n'.format(self.cfg.prefs['REMOTE']))
 
           for fn in self.diff.remote + self.diff.newlocal:
               hash = self.files[fn].hash_remote
-              line = 'rm {0[REPODIR]}/data/{1}.gpg\n'.format(self.cfg, hash)
+              line = 'rm {0[REPODIR]}/data/{1}.gpg\n'.format(self.cfg.conf, hash)
               f.write(line)
               nuke_some = True
               fn_list.append(fn)
@@ -710,8 +710,7 @@ class Repositories:
       When downloading, delete the local files not in remote repo.
       '''
       for name in self.diff.local:
-          v = self.files[name]
-          cmnd = 'rm -f "%s/%s"' % (self.path_local, name)
+          cmnd = 'rm -f "%s/%s"' % (self.cfg.conf['LOCALDIR'], name)
           self.doit(cmnd,2)
 
           if self.really_do:
@@ -820,7 +819,7 @@ class Repositories:
       
       # Build command:
       cmnd1 = '{0.rsync}'.format(self)
-      cmnd2 = '  {0.remote}/index.dat.gpg'.format(self)
+      cmnd2 = '  {0.prefs[REMOTE]}/{0.conf[REPODIR]}/index.dat.gpg'.format(self.cfg)
       cmnd3 = '  {0.tmpdir}/'.format(self)
       
       cmnd = cmnd1 + cmnd2 + cmnd3
@@ -1129,5 +1128,71 @@ def s2hms(seconds):
     string = '{0:02}:{1:02}:{2:02}'.format(hh,mm,ss)
 
     return string
+
+#--------------------------------------------------------------------------------#
+
+class Configuration:
+    '''
+    Class containing all info of configurations.
+    '''
+
+    def __init__(self):
+        self.prefs = {} # global preferences
+        self.conf  = {} # config of current repo
+
+    # ----- #
+
+    def read_prefs(self):
+        '''
+        Read the global preferences.
+        '''
+
+        fn = self.dir + '/config'
+        try:
+            self.prefs = conf2dic(fn)
+        except:
+            print('Could not read global preferences at "{0}"'.format(fn))
+            sys.exit()
+
+    # ----- #
+
+    def read_conf(self, what=None):
+        '''
+        Read the configuration for repo named "what".
+        '''
+
+        cfile = '{0}/{1}.conf'.format(self.dir, what)
+        try:
+            self.conf = conf2dic(cfile)
+        except:
+            print('Could not read configuration of repo "{0}"'.format(what))
+            sys.exit()
+
+        # Some fixes:
+        try:
+            # Remove trailing slash from localdir path (if any):
+            self.conf['LOCALDIR'] = re.sub('/$','',self.conf['LOCALDIR'])
+        except:
+            print('Could not find variable "LOCALDIR" in configuration')
+            sys.exit()
+
+    # ----- #
+
+    def check(self):
+        '''
+        Check that essential configuration variables are set.
+        '''
+
+        for var in ['REPODIR', 'LOCALDIR']:
+            if not var in self.conf:
+                string = 'Sorry, but variable "{0}" is not specified in conf file'
+                print(string)
+                sys.exit()
+
+        for var in ['RECIPIENT', 'REMOTE']:
+            if not var in self.prefs:
+                string = 'Sorry, but variable "{0}" is not specified in global config file'
+                print(string)
+                sys.exit()
 
 #--------------------------------------------------------------------------------#
