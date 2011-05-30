@@ -861,6 +861,28 @@ class Repositories:
               print('Error running command:\n%s' % (command))
               sys.exit()
 
+  # ----- #
+
+  def ask(self,up=True):
+      '''
+      Ask for permission to proceed, if need be.
+      '''
+
+      lsl = len(self.diff.local)
+      lsr = len(self.diff.remote)
+      lddr = len(self.diff.newremote)
+      lddl = len(self.diff.newlocal)
+
+      if up:
+          tot = lsl + lsr + lddl
+      else:
+          tot = lsl + lsr + lddr
+
+      if tot:
+          answer = input('\nAct accordingly (y/N)?: ')
+          if answer and 'y' in answer:
+              self.really_do = True
+
 #--------------------------------------------------------------------------------#
 
 def bytes2size(bytes):

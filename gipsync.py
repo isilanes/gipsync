@@ -343,14 +343,7 @@ else:
           repos.enumerate()
           
           # Ask for permission to proceed, if there are changes:
-          lsl = len(repos.diff.local)
-          lsr = len(repos.diff.remote)
-          lddl = len(repos.diff.newlocal)
-          
-          if lsl + lsr + lddl > 0:
-              answer = input('\nAct accordingly (y/N)?: ')
-              if answer and 'y' in answer:
-                  repos.really_do = True
+          repos.ask()
                   
           if repos.really_do:
               if not o.safe:
@@ -382,14 +375,7 @@ else:
               repos.enumerate()
               
               # Ask for permission to proceed:
-              lsl  = len(repos.diff.local)
-              lsr  = len(repos.diff.remote)
-              lddr = len(repos.diff.newremote)
-              
-              if lsl + lsr + lddr > 0:
-                  answer = input('\nAct accordingly (y/N)?: ')
-                  if answer and 'y' in answer:
-                      repos.really_do = True
+              repos.ask(up=False)
                       
           if repos.really_do:
               if not o.safe:
