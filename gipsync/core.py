@@ -1160,6 +1160,7 @@ class Configuration:
     def __init__(self):
         self.prefs = {} # global preferences
         self.conf  = {} # config of current repo
+        self.excludes = {} # excluded files
 
     # ----- #
 
