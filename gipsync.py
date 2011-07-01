@@ -389,6 +389,10 @@ else:
 
               # Save logs:
               repos.save(hash_file)
+
+              # Write index file to remote repo:
+              string = 'Saving index.dat remotely...'
+              GC.say(string)
               repos.save('index.dat', local=False)
 
       # Cleanup:
