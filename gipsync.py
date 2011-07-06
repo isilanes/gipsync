@@ -204,12 +204,10 @@ if o.new:
 
 elif o.delete:
     # Check that repo dir is mounted:
-    dir = prefs['PIVOTDIR']
+    dir = cfg.prefs['PIVOTDIR']
     if not os.path.isdir(dir):
         msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
         sys.exit(msg)
-
-    tn = GC.now()
 
     # Get info:
     sizes = GC.collect_sizes(dir)

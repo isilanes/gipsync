@@ -977,8 +977,11 @@ def delete_asked(asizes,todelete):
     Delete files from pivot dir, until given size is reached.
     '''
 
+    tn = now()
+    tfiles = len(asizes)
+
+    idel = 0
     deleted = 0
-    idel    = 0
     while len(asizes):
         x = asizes.pop(0)
         xplit = x.split('.')
@@ -987,12 +990,12 @@ def delete_asked(asizes,todelete):
         fn  = os.path.basename(jfn)
 
         idel += 1
-        deleted += int(sizes[x])
+        deleted += int(asizes[x])
 
         ago = (tn - datex)/86400.0
 
         fmt = '{0:>4d}/{1}  {2}  {3:>10}  {4:>10}  {5:>6.2f} d'
-        print(fmt.format(idel, tfiles, fn, bytes2size(sizes[x]), bytes2size(deleted), ago))
+        print(fmt.format(idel, tfiles, fn, bytes2size(asizes[x]), bytes2size(deleted), ago))
         os.unlink(jfn)
 
         if deleted > todelete:
