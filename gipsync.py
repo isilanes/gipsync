@@ -352,16 +352,16 @@ else:
                   repos.nuke_remote()
                   times.milestone('Nuke up')
           
-          # Safe or not safe, upload:
-          string = 'Uploading...'
-          GC.say(string)
-          repos.upload()
-          times.milestone('Upload')
-          
-          # Write index file to remote repo:
-          string = 'Saving index.dat remotely...'
-          GC.say(string)
-          repos.save('index.dat', local=False)
+              # Safe or not safe, upload:
+              string = 'Uploading...'
+              GC.say(string)
+              repos.upload()
+              times.milestone('Upload')
+                
+              # Write index file to remote repo:
+              string = 'Saving index.dat remotely...'
+              GC.say(string)
+              repos.save('index.dat', local=False)
 
       ############
       # Download #
