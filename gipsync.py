@@ -283,12 +283,14 @@ else:
       GC.say(string)
       repos.get_index() # first download only index.dat.gpg
       
+      times.milestone('Download remote index')
+
       # Get remote md5tree:
       string = 'Reading remote md5tree...'
       GC.say(string)
       repos.read_remote()
       
-      times.milestone('Read remote')
+      times.milestone('Read remote index')
       
       # --- Read local data --- #
       
