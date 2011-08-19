@@ -953,7 +953,7 @@ def collect_sizes(dir):
     Collect the size of all data in remote repo (mounted locally by SSHFS).
     '''
 
-    sizes = {}
+    sizes = []
 
     for path, dirs, files in os.walk(dir):
         print(path)
@@ -963,8 +963,8 @@ def collect_sizes(dir):
                 sz = os.path.getsize(fn)
                 mt = os.path.getmtime(fn)
                 
-                k = '%i.%s' % (int(mt),fn)
-                sizes[k] = sz
+                k = '%i.%s.%i' % (int(mt), fn, sz)
+                sizes.append(k)
                 sys.stdout.write('.') # "progress bar"
             print('')
 
@@ -972,30 +972,31 @@ def collect_sizes(dir):
 
 #--------------------------------------------------------------------------------#
 
-def delete_asked(asizes,todelete):
+def delete_asked(sizes,todelete):
     '''
     Delete files from pivot dir, until given size is reached.
     '''
 
     tn = now()
-    tfiles = len(asizes)
+    tfiles = len(sizes)
 
     idel = 0
     deleted = 0
-    while len(asizes):
-        x = asizes.pop(0)
+    while len(sizes):
+        x = sizes.pop(0)
         xplit = x.split('.')
         datex = int(xplit[0])
-        jfn = '.'.join(xplit[1:])
-        fn  = os.path.basename(jfn)
+        jfn = '.'.join(xplit[1:-1])
+        fn = os.path.basename(jfn)
+        sizex = int(xplit[-1])
 
         idel += 1
-        deleted += int(asizes[x])
+        deleted += sizex
 
         ago = (tn - datex)/86400.0
 
         fmt = '{0:>4d}/{1}  {2}  {3:>10}  {4:>10}  {5:>6.2f} d'
-        print(fmt.format(idel, tfiles, fn, bytes2size(asizes[x]), bytes2size(deleted), ago))
+        print(fmt.format(idel, tfiles, fn, bytes2size(sizex), bytes2size(deleted), ago))
         os.unlink(jfn)
 
         if deleted > todelete:

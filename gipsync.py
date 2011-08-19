@@ -213,9 +213,7 @@ elif o.delete:
     sizes = GC.collect_sizes(dir)
 
     # Sort info by date:
-    asizes = [x for x in sizes]
-    asizes.sort()
-    tfiles = len(asizes)
+    sizes.sort()
 
     # Delete up to freeing requested size,
     # starting from oldest files:
@@ -224,7 +222,7 @@ elif o.delete:
 
     goon = True
     while goon:
-        returned = GC.delete_asked(asizes, todelete)
+        returned = GC.delete_asked(sizes, todelete)
         if returned:
             string = 'How many MBs do you want to delete?: '
             todelete = input(string)
