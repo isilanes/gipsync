@@ -281,8 +281,8 @@ else:
 
       # Get remote md5tree:
       if repos.step_check('read_index.dat'):
-          GC.say('Remote index.dat read. Avoiding re-read using repos.pickled...')
-          repos.pickle_it(read=True)
+          GC.say('Remote index.dat read. Avoiding re-read by using repos.pickled...')
+          repos = repos.pickle_it(read=True)
       else:
           string = 'Reading remote md5tree...'
           GC.say(string)
@@ -295,14 +295,14 @@ else:
 
       # --- Read local data --- #
 
+      hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
       if repos.step_check('read_local_md5s'):
           GC.say('Local md5 file read. Avoiding re-read using repos.pickled...')
-          repos.pickle_it(read=True)
+          repos = repos.pickle_it(read=True)
       else:
           # Read local file hashes from conf (for those files that didn't change):
           string = 'Reading local md5tree...'
           GC.say(string)
-          hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
           repos.read(hash_file)
           # Create flag to say "we already read local md5 file":
           repos.step_check('read_local_md5s',create=True)
@@ -313,7 +313,7 @@ else:
       # Traverse source and get list of file hashes:
       if repos.step_check('check_local_files'):
           GC.say('Local files already checked. Avoiding re-check using repos.pickled...')
-          repos.pickle_it(read=True)
+          repos = repos.pickle_it(read=True)
       else:
           string = 'Finding new/different local files...'
           GC.say(string)
@@ -341,7 +341,7 @@ else:
       # Compare remote and local md5 trees:
       if repos.step_check('compare_md5_trees'):
           GC.say('Local/remote MD5 trees already compared. Avoiding re-comparison...')
-          repos.pickle_it(read=True)
+          repos = repos.pickle_it(read=True)
       else:
           string = 'Comparing remote/local...'
           GC.say(string)
@@ -354,10 +354,15 @@ else:
       
       # Sort lists, for easy reading:
       repos.diff.sort()
+      repos.pickle_it()
       
       times.milestone('Sort diff')
       
       # Act according to differences in repos:
+
+      print(repos.diff.newlocal)
+
+      sys.exit()
       
       ##########
       # Upload #
@@ -368,6 +373,7 @@ else:
           
           # Print summary/info:
           repos.enumerate()
+          sys.exit()
           
           # Ask for permission to proceed, if there are changes:
           repos.ask()

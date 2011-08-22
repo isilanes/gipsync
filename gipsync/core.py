@@ -900,7 +900,8 @@ class Repositories:
       pickle_file = '{0}/repo.pickled'.format(self.tmpdir)
 
       if read: # then read pickled data, not write it.
-          pass
+          with open(pickle_file,'rb') as f:
+              return pickle.load(f)
       else:
           with open(pickle_file,'wb') as f:
               pickle.dump(self,f)
