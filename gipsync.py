@@ -324,21 +324,31 @@ else:
       
       times.milestone('Dir walk')
       
-      sys.exit()
-      
       # --- Write back local data --- #
       
       # Save local hashes, be it dry or real run:
-      string = 'Saving local data...'
-      GC.say(string)
-      repos.save(hash_file)
+      if repos.step_check('save_local_md5s'):
+          GC.say('Local MD5s already saved. Avoiding re-save...')
+      else:
+          string = 'Saving local data...'
+          GC.say(string)
+          repos.save(hash_file)
+          # Create flag to say "we already saved local MD5s":
+          repos.step_check('save_local_md5s',create=True)
       
       # --- Actually do stuff --- #
       
       # Compare remote and local md5 trees:
-      string = 'Comparing remote/local...'
-      GC.say(string)
-      repos.compare()
+      if repos.step_check('compare_md5_trees'):
+          GC.say('Local/remote MD5 trees already compared. Avoiding re-comparison...')
+          repos.pickle_it(read=True)
+      else:
+          string = 'Comparing remote/local...'
+          GC.say(string)
+          repos.compare()
+          # Create flag to say "we already checked local files":
+          repos.step_check('compare_md5_trees',create=True)
+          repos.pickle_it()
       
       times.milestone('Compare')
       
