@@ -359,6 +359,7 @@ else:
       times.milestone('Sort diff')
       
       # Act according to differences in repos:
+      success = False
 
       ##########
       # Upload #
@@ -369,31 +370,44 @@ else:
           
           # Print summary/info:
           repos.enumerate()
-          sys.exit()
           
           # Ask for permission to proceed, if there are changes:
           repos.ask()
                   
           if repos.really_do:
               if not o.safe:
-                  string = 'Deleting remote files...'
-                  GC.say(string)
-                  repos.nuke_remote()
-                  times.milestone('Nuke up')
+                  if repos.step_check('delete_remote'):
+                      GC.say('[AVOIDED] Deleting remote files...')
+                  else:
+                      string = 'Deleting remote files...'
+                      GC.say(string)
+                      repos.nuke_remote()
+                      repos.step_check('delete_remote',create=True)
+
+              times.milestone('Nuke up')
           
               # Safe or not safe, upload:
-              string = 'Uploading...'
-              GC.say(string)
-              success = repos.upload()
+              if repos.step_check('upload'):
+                  GC.say('[AVOIDED] Uploading...')
+              else:
+                  string = 'Uploading...'
+                  GC.say(string)
+                  success = repos.upload()
+                  repos.step_check('upload',create=True)
+                  
               times.milestone('Upload')
 
               if not success:
                   sys.exit()
                 
               # Write index file to remote repo:
-              string = 'Saving index.dat remotely...'
-              GC.say(string)
-              repos.save('index.dat', local=False)
+              if repos.step_check('write_remote_index'):
+                  GC.say('[AVOIDED] Saving index.dat remotely...')
+              else:
+                  string = 'Saving index.dat remotely...'
+                  GC.say(string)
+                  repos.save('index.dat', local=False)
+                  repos.step_check('write_remote_index',create=True)
 
       ############
       # Download #
@@ -428,9 +442,10 @@ else:
               repos.save('index.dat', local=False)
 
       # Cleanup:
-      string = 'Cleaning up...'
-      GC.say(string)
-      repos.clean()
+      if success:
+          string = 'Cleaning up...'
+          GC.say(string)
+          repos.clean()
 
       times.milestone('Finalize')
 
