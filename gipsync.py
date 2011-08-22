@@ -280,13 +280,18 @@ else:
       times.milestone('Download remote index')
 
       # Get remote md5tree:
-      string = 'Reading remote md5tree...'
-      GC.say(string)
-      repos.read_remote()
+      if repos.step_check('read_index.dat'):
+          GC.say('Remote index.dat read. Avoiding re-read using repos.pickled...')
+          repos.pickle_it(read=True)
+      else:
+          string = 'Reading remote md5tree...'
+          GC.say(string)
+          repos.read_remote()
+          # Create flag to say "we already downloaded index.dat":
+          repos.step_check('read_index.dat',create=True)
+          repos.pickle_it()
       
       times.milestone('Read remote index')
-
-      repos.pickle_it()
 
       sys.exit()
       
