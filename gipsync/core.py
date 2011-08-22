@@ -480,9 +480,13 @@ class Repositories:
           f.close()
 
           # Finally, upload all of them from tmpdir to remote repo:
-          cmnd = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/'.format(self,tmpfile)
-          self.doit(cmnd,2,fatal_errors=False)
-          os.unlink(tmpfile)
+          fmt = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/'
+          cmnd = fmt.format(self,tmpfile)
+          try:
+              self.doit(cmnd,2)
+              os.unlink(tmpfile)
+          except:
+              return False
 
           # Log changes:
           for name in file_list:
@@ -490,6 +494,8 @@ class Repositories:
               v.hash_remote  = v.hash_local
               v.size_remote  = v.size_local
               v.mtime_remote = v.mtime_local
+
+          return True
 
   # ----- #
 

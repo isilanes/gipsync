@@ -384,8 +384,11 @@ else:
               # Safe or not safe, upload:
               string = 'Uploading...'
               GC.say(string)
-              repos.upload()
+              success = repos.upload()
               times.milestone('Upload')
+
+              if not success:
+                  sys.exit()
                 
               # Write index file to remote repo:
               string = 'Saving index.dat remotely...'
