@@ -287,30 +287,44 @@ else:
           string = 'Reading remote md5tree...'
           GC.say(string)
           repos.read_remote()
-          # Create flag to say "we already downloaded index.dat":
+          # Create flag to say "we already read remote index.dat":
           repos.step_check('read_index.dat',create=True)
           repos.pickle_it()
       
       times.milestone('Read remote index')
 
-      sys.exit()
-      
       # --- Read local data --- #
-      
-      # Read local file hashes from conf (for those files that didn't change):
-      string = 'Reading local md5tree...'
-      GC.say(string)
-      hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
-      repos.read(hash_file)
+
+      if repos.step_check('read_local_md5s'):
+          GC.say('Local md5 file read. Avoiding re-read using repos.pickled...')
+          repos.pickle_it(read=True)
+      else:
+          # Read local file hashes from conf (for those files that didn't change):
+          string = 'Reading local md5tree...'
+          GC.say(string)
+          hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
+          repos.read(hash_file)
+          # Create flag to say "we already read local md5 file":
+          repos.step_check('read_local_md5s',create=True)
+          repos.pickle_it()
       
       times.milestone('Initialize')
-      
+
       # Traverse source and get list of file hashes:
-      string = 'Finding new/different local files...'
-      GC.say(string)
-      repos.walk()
+      if repos.step_check('check_local_files'):
+          GC.say('Local files already checked. Avoiding re-check using repos.pickled...')
+          repos.pickle_it(read=True)
+      else:
+          string = 'Finding new/different local files...'
+          GC.say(string)
+          repos.walk()
+          # Create flag to say "we already checked local files":
+          repos.step_check('check_local_files',create=True)
+          repos.pickle_it()
       
       times.milestone('Dir walk')
+      
+      sys.exit()
       
       # --- Write back local data --- #
       
