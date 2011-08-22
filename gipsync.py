@@ -416,30 +416,48 @@ else:
           repos.really_do = False
           answer = False
           
-          if not repos.really_do:
-              # Print summary/info:
-              repos.enumerate()
-              
-              # Ask for permission to proceed:
-              repos.ask(up=False)
+          # Print summary/info:
+          repos.enumerate()
+          
+          # Ask for permission to proceed:
+          repos.ask(up=False)
                       
           if repos.really_do:
               if not o.safe:
-                  # Delete files only in local:
-                  repos.nuke_local()
+                  if repos.step_check('delete_local'):
+                      GC.say('[AVOIDED] Deleting local files...')
+                  else:
+                      # Delete files only in local:
+                      repos.nuke_local()
+                      repos.step_check('delete_local',create=True)
+
                   times.milestone('Nuke local')
 
               # Safe or not, download:
-              repos.download()
+              if repos.step_check('download'):
+                  GC.say('[AVOIDED] Downloading...')
+              else:
+                  string = 'Downloading...'
+                  GC.say(string)
+                  success = repos.download()
+                  repos.step_check('download',create=True)
+              
               times.milestone('Download')
+
+              if not success:
+                  sys.exit()
 
               # Save logs:
               repos.save(hash_file)
 
               # Write index file to remote repo:
-              string = 'Saving index.dat remotely...'
-              GC.say(string)
-              repos.save('index.dat', local=False)
+              if repos.step_check('write_remote_index'):
+                  GC.say('[AVOIDED] Saving index.dat remotely...')
+              else:
+                  string = 'Saving index.dat remotely...'
+                  GC.say(string)
+                  repos.save('index.dat', local=False)
+                  repos.step_check('write_remote_index',create=True)
 
       # Cleanup:
       if success:

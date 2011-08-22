@@ -641,11 +641,14 @@ class Repositories:
       f.close()
 
       # Download all of them from repo to tmpdir:
-      fmt  = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
+      fmt = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
       fmt += ' {0.tmpdir}/data/'
       cmnd = fmt.format(self,tmpfile)
-      self.doit(cmnd,2,fatal_errors=False)
-      os.unlink(tmpfile)
+      try:
+          self.doit(cmnd,2)
+          os.unlink(tmpfile)
+      except:
+          return False
 
       # List of files we just downloaded:
       file_list = []
