@@ -267,11 +267,11 @@ else:
       # --- Read remote data --- #
 
       # Check if remote data already downloaded:
+      string = 'Downloading index.dat...'
       if repos.step_check('dl_index.dat'):
-          GC.say('Remote index.dat present. Avoiding re-download...')
+          GC.say('[AVOIDED] {0}'.format(string))
       else:
           # Sync local proxy repo with remote repo:
-          string = 'Downloading index.dat...'
           GC.say(string)
           repos.get_index() # first download only index.dat.gpg
           # Create flag to say "we already downloaded index.dat":
@@ -280,11 +280,11 @@ else:
       times.milestone('Download remote index')
 
       # Get remote md5tree:
+      string = 'Reading remote md5tree...'
       if repos.step_check('read_index.dat'):
-          GC.say('Remote index.dat read. Avoiding re-read by using repos.pickled...')
+          GC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          string = 'Reading remote md5tree...'
           GC.say(string)
           repos.read_remote()
           # Create flag to say "we already read remote index.dat":
@@ -296,12 +296,12 @@ else:
       # --- Read local data --- #
 
       hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
+      string = 'Reading local md5tree...'
       if repos.step_check('read_local_md5s'):
-          GC.say('Local md5 file read. Avoiding re-read using repos.pickled...')
+          GC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
           # Read local file hashes from conf (for those files that didn't change):
-          string = 'Reading local md5tree...'
           GC.say(string)
           repos.read(hash_file)
           # Create flag to say "we already read local md5 file":
@@ -311,11 +311,11 @@ else:
       times.milestone('Initialize')
 
       # Traverse source and get list of file hashes:
+      string = 'Finding new/different local files...'
       if repos.step_check('check_local_files'):
-          GC.say('Local files already checked. Avoiding re-check using repos.pickled...')
+          GC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          string = 'Finding new/different local files...'
           GC.say(string)
           repos.walk()
           # Create flag to say "we already checked local files":
@@ -327,10 +327,10 @@ else:
       # --- Write back local data --- #
       
       # Save local hashes, be it dry or real run:
+      string = 'Saving local data...'
       if repos.step_check('save_local_md5s'):
-          GC.say('Local MD5s already saved. Avoiding re-save...')
+          GC.say('[AVOIDED] {0}'.format(string))
       else:
-          string = 'Saving local data...'
           GC.say(string)
           repos.save(hash_file)
           # Create flag to say "we already saved local MD5s":
@@ -339,11 +339,11 @@ else:
       # --- Actually do stuff --- #
       
       # Compare remote and local md5 trees:
+      string = 'Comparing remote/local...'
       if repos.step_check('compare_md5_trees'):
-          GC.say('Local/remote MD5 trees already compared. Avoiding re-comparison...')
+          GC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          string = 'Comparing remote/local...'
           GC.say(string)
           repos.compare()
           # Create flag to say "we already checked local files":
