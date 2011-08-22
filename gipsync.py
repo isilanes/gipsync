@@ -360,10 +360,6 @@ else:
       
       # Act according to differences in repos:
 
-      print(repos.diff.newlocal)
-
-      sys.exit()
-      
       ##########
       # Upload #
       ##########
