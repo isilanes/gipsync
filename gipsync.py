@@ -374,13 +374,12 @@ else:
       ##########
       if o.up:
           repos.really_do = False
-          answer = False
           
           # Print summary/info:
           repos.enumerate()
           
           # Ask for permission to proceed, if there are changes:
-          repos.ask()
+          any_diff = repos.ask()
                   
           if repos.really_do:
               if not o.safe:
@@ -422,13 +421,12 @@ else:
       ############
       else:
           repos.really_do = False
-          answer = False
           
           # Print summary/info:
           repos.enumerate()
           
           # Ask for permission to proceed:
-          repos.ask(up=False)
+          any_diff = repos.ask(up=False)
                       
           if repos.really_do:
               if not o.safe:
@@ -467,8 +465,9 @@ else:
                   repos.save('index.dat', local=False)
                   repos.step_check('write_remote_index',create=True)
 
-      # Cleanup:
-      if success:
+      # Cleanup, either because all went well, or because 
+      # there was nothing to do:
+      if success or not any_diff:
           string = 'Cleaning up...'
           GC.say(string)
           repos.clean()

@@ -871,9 +871,16 @@ class Repositories:
           tot = lsl + lsr + lddr
 
       if tot:
+          # There are differences:
           answer = input('\nAct accordingly (y/N)?: ')
           if answer and 'y' in answer:
               self.really_do = True
+
+          return True
+
+      else:
+          # There was no difference:
+          return False
 
   # ----- #
 
