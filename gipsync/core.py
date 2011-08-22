@@ -6,6 +6,7 @@ import hashlib
 import time
 import datetime
 import subprocess as sp
+import pickle
 
 #--------------------------------------------------------------------------------#
 
@@ -127,7 +128,7 @@ class Repositories:
   All the data about both local and remote repos.
   '''
 
-  def __init__(self,opt=None,la=None, cfg=None):
+  def __init__(self,opt=None, cfg=None):
       self.files        = {}        # dict of filename/file object
       self.files_read   = {}        # dict of file names:true (to check pertenence)
       self.files_local  = {}        # dict of file names:true (to check pertenence)
@@ -139,7 +140,6 @@ class Repositories:
       self.hashed       = 0          # total files for which hash was calculated
       self.diff         = RepoDiff() # difference between repos
       self.options      = opt        # optparse options
-      self.last_action  = la
       self.really_do    = False
       self.cfg          = cfg        # Configuration object holding all config and prefs
 
@@ -805,10 +805,6 @@ class Repositories:
           if os.path.isdir(self.tmpdir):
               shutil.rmtree(self.tmpdir)
 
-      # Delete last action file:
-      if os.path.isfile(self.last_action.file):
-          os.unlink(self.last_action.file)
-
   # ----- #
 
   def get_index(self):
@@ -827,13 +823,7 @@ class Repositories:
       if self.options.verbosity > 1:
           print('\n' + cmnd1 + '\n' + cmnd2 + '\n' + cmnd3 + '\n')
 
-      # Save command to file, in case we abort mid-rsync:
-      f = open(self.last_action.file,'w')
-      f.write(cmnd)
-      f.close()
-
-      # Perform rsync and delete just-in-case file afterwards:
-      cmnd = '{0} && rm -f "{1}"'.format(cmnd, self.last_action.file)
+      # Perform rsync:
       self.doit(cmnd)
 
   # ----- #
@@ -845,13 +835,6 @@ class Repositories:
       
       if not self.options.verbosity < level:
           print(command)
-          
-      try:
-          f = open(self.last_action.file,'w')
-          f.write(command)
-          f.close()
-      except:
-          pass
           
       s = sp.Popen(command, shell=True)
       s.communicate()
@@ -882,6 +865,45 @@ class Repositories:
           answer = input('\nAct accordingly (y/N)?: ')
           if answer and 'y' in answer:
               self.really_do = True
+
+  # ----- #
+
+  def step_check(self,what=None,create=False):
+      '''
+      Check if some step has been completed in a previous run, and do not repeat.
+      '''
+
+      if not what:
+          return False
+
+      check_file = '{0}/{1}.completed'.format(self.tmpdir, what)
+
+      if create:
+          # Create an empty file that tells us a given step has been completed.
+          with open(check_file,'w') as f:
+              f.write('')
+
+      else:
+          # If not told to create file, means we have been asked to check if exists:
+          if os.path.isfile(check_file):
+              return True
+
+      return False
+
+  # ----- #
+
+  def pickle_it(self,read=False):
+      '''
+      Save/read repos object to/from file.
+      '''
+
+      pickle_file = '{0}/repo.pickled'.format(self.tmpdir)
+
+      if read: # then read pickled data, not write it.
+          pass
+      else:
+          with open(pickle_file,'wb') as f:
+              pickle.dump(self,f)
 
 #--------------------------------------------------------------------------------#
 
@@ -1011,44 +1033,6 @@ def say(string=None):
 
     if string:
         print('\033[1m%s\033[0m' % (string))
-
-#--------------------------------------------------------------------------------#
-
-class LastAction:
-    '''
-    Object to manage abortions and restarts.
-    '''
-
-    def __init__(self, laf=None):
-        '''
-        '''
-
-        self.file = laf
-
-    # --- #
-
-    def check(self):
-        '''
-        Check if gipsync was previously aborted by searching for a "last_action" file.
-        If it was, suggest to perform action in "last_action" file, and exit.
-        '''
-        
-        if os.path.isfile(self.file):
-            last_action = None
-            
-            f = open(self.file,'r')
-            for line in f:
-                last_action = line
-            f.close()
-            
-            if last_action:
-                print("Aborting: command aborted from previous run:\n")
-                print(last_action+'\n')
-                print("Please do the following:")
-                print(" 1 - Bring the above command to end by hand")
-                print(" 2 - Delete file {0}".format(self.file))
-                print(" 3 - Run gipsync again.")
-                sys.exit()
 
 #--------------------------------------------------------------------------------#
 

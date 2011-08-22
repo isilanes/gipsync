@@ -111,8 +111,6 @@ times = GC.Timing()
 cfg = GC.Configuration()
 cfg.dir = '{0[HOME]}/.gipsync'.format(os.environ)
 cfg.read_prefs()
-la = GC.LastAction()
-la.file = '{0}/last_action'.format(cfg.dir)
 
 #--------------------------------------------------------------------------------#
 
@@ -242,10 +240,6 @@ elif o.delete:
 ##################
 
 else:
-  # First of all, check whether there's some unresolved (truncated) action
-  # from a previous run:
-  la.check()
-
   # Check arguments:
   if args and args[0] == 'all':
       args = cfg.prefs['ALL'].split(',')
@@ -257,7 +251,7 @@ else:
       cfg.check()
 
       # Initialize repo:
-      repos = GC.Repositories(o,la,cfg)
+      repos = GC.Repositories(o,cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
       
       if o.verbosity < 1:
@@ -265,21 +259,23 @@ else:
           
       times.milestone('Read confs')
       
-      # Continue or not:
-      cntdir = '{0}/data'.format(repos.tmpdir)
-      if not os.path.isdir(cntdir):
-          os.makedirs(cntdir)
-          
+      # Print info:
       fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
       string = fmt.format(what, cfg.conf['LOCALDIR'])
       GC.say(string)
       
       # --- Read remote data --- #
-      
-      # Sync local proxy repo with remote repo:
-      string = 'Downloading index.dat...'
-      GC.say(string)
-      repos.get_index() # first download only index.dat.gpg
+
+      # Check if remote data already downloaded:
+      if repos.step_check('dl_index.dat'):
+          GC.say('Remote index.dat present. Avoiding re-download...')
+      else:
+          # Sync local proxy repo with remote repo:
+          string = 'Downloading index.dat...'
+          GC.say(string)
+          repos.get_index() # first download only index.dat.gpg
+          # Create flag to say "we already downloaded index.dat":
+          repos.step_check('dl_index.dat',create=True)
       
       times.milestone('Download remote index')
 
@@ -289,6 +285,10 @@ else:
       repos.read_remote()
       
       times.milestone('Read remote index')
+
+      repos.pickle_it()
+
+      sys.exit()
       
       # --- Read local data --- #
       
