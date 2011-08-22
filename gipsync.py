@@ -253,6 +253,14 @@ else:
       # Initialize repo:
       repos = GC.Repositories(o,cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
+
+      # Create tmpdir if necessary:
+      tmpdata = repos.tmpdir + '/data'
+      try:
+          os.makedirs(tmpdata)
+      except:
+          # If it already exists
+          pass
       
       if o.verbosity < 1:
           repos.gpgcom += ' --no-tty '
