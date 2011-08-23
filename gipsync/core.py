@@ -711,6 +711,9 @@ class Repositories:
               print('\033[31m[MISS]\033[0m %s' % (file.name))
               del self.files_remote[file.name]
 
+      # If all went OK, return True:
+      return True
+
   # ----- #
 
   def nuke_local(self):
