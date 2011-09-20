@@ -469,24 +469,26 @@ class Repositories:
           # First encrypt files to tmp dir:
           self.encrypt(file_list, self.options.size_control)
 
-          # Build list of files to upload from tmpdir to remote repo:
-          tmpfile = '{0}/filelist.txt'.format(self.tmpdir)
-          f = open(tmpfile,'w')
-          for h in self.diff.local_hash:
-              f.write(h+'.gpg\n')
+          # Upload only if --size-control option not given:
+          if not self.options.size_control:
+              # Build list of files to upload from tmpdir to remote repo:
+              tmpfile = '{0}/filelist.txt'.format(self.tmpdir)
+              with open(tmpfile,'w') as f:
+                  for h in self.diff.local_hash:
+                      f.write(h+'.gpg\n')
 
-          for h in self.diff.newlocal_hash:
-              f.write(h+'.gpg\n')
-          f.close()
+                  for h in self.diff.newlocal_hash:
+                      f.write(h+'.gpg\n')
 
-          # Finally, upload all of them from tmpdir to remote repo:
-          fmt = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/'
-          cmnd = fmt.format(self,tmpfile)
-          try:
-              self.doit(cmnd,2)
-              os.unlink(tmpfile)
-          except:
-              return False
+              # Finally, upload all of them from tmpdir to remote repo:
+              fmt  = '{0.rsync} -vh --progress {0.tmpdir}/data/ --files-from={1} '
+              fmt += ' {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/'
+              cmnd = fmt.format(self,tmpfile)
+              try:
+                  self.doit(cmnd,2)
+                  os.unlink(tmpfile)
+              except:
+                  return False
 
           # Log changes:
           for name in file_list:
@@ -499,28 +501,35 @@ class Repositories:
 
   # ----- #
 
-  def encrypt(self, file_list, control=False):
-    if file_list:
-        print('\n')
+  def encrypt(self, file_list, control):
+      '''
+      '''
 
-    for name in file_list:
-        v = self.files[name]
-        
-        # Log it:
-        if not name in self.files_remote:
-            self.files_remote[name] = True
-        
-        # GPG it:
-        fgpg  = '%s.gpg'     % (v.hash_local)
-        lfile = '%s/data/%s' % (self.tmpdir, fgpg)
-        
-        # Only GPG if not GPGed yet:
-        if not os.path.isfile(lfile) and not control:
-            if self.options.verbosity < 2:
-                print('\033[32m[GPG]\033[0m %s' % (fitit(name)))
-                
-            cmnd = '%s -r %s -o "%s" -e "%s"' % (self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
-            self.doit(cmnd,2)
+      if file_list:
+          print('\n')
+          
+      for name in file_list:
+          v = self.files[name]
+          
+          # Log it:
+          if not name in self.files_remote:
+              self.files_remote[name] = True
+              
+          # If --size-control, GPG nothing:
+          if not control:
+              # GPG it:
+              fgpg  = '{0}.gpg'.format(v.hash_local)
+              lfile = '{0}/data/{1}'.format(self.tmpdir, fgpg)
+              
+              # Only GPG if not GPGed yet:
+              if not os.path.isfile(lfile):
+                  if self.options.verbosity < 2:
+                      string = '\033[32m[GPG]\033[0m {0}'.format(fitit(name))
+                      print(string)
+                      
+                  fmt = '{0} -r {1} -o "{2}" -e "{3}"'
+                  cmnd = fmt.format(self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
+                  self.doit(cmnd,2)
 
   # ----- #
 
