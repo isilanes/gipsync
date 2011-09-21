@@ -36,7 +36,7 @@ import os
 import re
 import sys
 import optparse
-import gipsync.core as GC
+import libgipsync.core as LC
 
 #--------------------------------------------------#
 
@@ -107,8 +107,8 @@ parser.add_option("-l", "--limit-bw",
 
 # --- Initialization --- #
 
-times = GC.Timing()
-cfg = GC.Configuration()
+times = LC.Timing()
+cfg = LC.Configuration()
 cfg.dir = '{0[HOME]}/.gipsync'.format(os.environ)
 cfg.read_prefs()
 
@@ -121,7 +121,7 @@ cfg.read_prefs()
 ####################
 
 if o.new:
-  tn = GC.now()
+  tn = LC.now()
 
   try:
       conf_name = args[0]
@@ -132,7 +132,7 @@ if o.new:
   # Check that conf file exists, and read it:
   cfile = '{0}/{1}.conf'.format(conf_dir,conf_name)
   if os.path.isfile(cfile):
-      conf = GC.conf2dic(cfile)
+      conf = LC.conf2dic(cfile)
   else:
       msg = 'Requested file "{0}" does not exist!'.format(cfile)
       sys.exit(msg)
@@ -155,7 +155,7 @@ if o.new:
     os.mkdir(data_dir)
 
   # Create tmpdir:
-  repos = GC.Repositories(o,la)
+  repos = LC.Repositories(o,la)
   repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, conf_name)
   if not os.path.isdir(repos.tmpdir):
       os.mkdir(repos.tmpdir)
@@ -170,7 +170,7 @@ if o.new:
   # Read local excludes from .excludes:
   excludes_file = '{0}/{1}.excludes'.format(conf_dir, conf_name)
   if os.path.isfile(excludes_file):
-    repos.excludes = GC.conf2dic(excludes_file)
+    repos.excludes = LC.conf2dic(excludes_file)
 
   times.milestone('Initialize')
 
@@ -208,7 +208,7 @@ elif o.delete:
         sys.exit(msg)
 
     # Get info:
-    sizes = GC.collect_sizes(dir)
+    sizes = LC.collect_sizes(dir)
 
     # Sort info by date:
     sizes.sort()
@@ -220,7 +220,7 @@ elif o.delete:
 
     goon = True
     while goon:
-        returned = GC.delete_asked(sizes, todelete)
+        returned = LC.delete_asked(sizes, todelete)
         if returned:
             string = 'How many MBs do you want to delete?: '
             todelete = input(string)
@@ -251,7 +251,7 @@ else:
       cfg.check()
 
       # Initialize repo:
-      repos = GC.Repositories(o,cfg)
+      repos = LC.Repositories(o,cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
 
       # Create tmpdir if necessary:
@@ -270,17 +270,17 @@ else:
       # Print info:
       fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
       string = fmt.format(what, cfg.conf['LOCALDIR'])
-      GC.say(string)
+      LC.say(string)
       
       # --- Read remote data --- #
 
       # Check if remote data already downloaded:
       string = 'Downloading index.dat...'
       if repos.step_check('dl_index.dat'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
       else:
           # Sync local proxy repo with remote repo:
-          GC.say(string)
+          LC.say(string)
           repos.get_index() # first download only index.dat.gpg
           # Create flag to say "we already downloaded index.dat":
           repos.step_check('dl_index.dat',create=True)
@@ -290,10 +290,10 @@ else:
       # Get remote md5tree:
       string = 'Reading remote md5tree...'
       if repos.step_check('read_index.dat'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          GC.say(string)
+          LC.say(string)
           repos.read_remote()
           # Create flag to say "we already read remote index.dat":
           repos.step_check('read_index.dat',create=True)
@@ -306,11 +306,11 @@ else:
       hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
       string = 'Reading local md5tree...'
       if repos.step_check('read_local_md5s'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
           # Read local file hashes from conf (for those files that didn't change):
-          GC.say(string)
+          LC.say(string)
           repos.read(hash_file)
           # Create flag to say "we already read local md5 file":
           repos.step_check('read_local_md5s',create=True)
@@ -321,10 +321,10 @@ else:
       # Traverse source and get list of file hashes:
       string = 'Finding new/different local files...'
       if repos.step_check('check_local_files'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          GC.say(string)
+          LC.say(string)
           repos.walk()
           # Create flag to say "we already checked local files":
           repos.step_check('check_local_files',create=True)
@@ -337,9 +337,9 @@ else:
       # Save local hashes, be it dry or real run:
       string = 'Saving local data...'
       if repos.step_check('save_local_md5s'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
       else:
-          GC.say(string)
+          LC.say(string)
           repos.save(hash_file)
           # Create flag to say "we already saved local MD5s":
           repos.step_check('save_local_md5s',create=True)
@@ -349,10 +349,10 @@ else:
       # Compare remote and local md5 trees:
       string = 'Comparing remote/local...'
       if repos.step_check('compare_md5_trees'):
-          GC.say('[AVOIDED] {0}'.format(string))
+          LC.say('[AVOIDED] {0}'.format(string))
           repos = repos.pickle_it(read=True)
       else:
-          GC.say(string)
+          LC.say(string)
           repos.compare()
           # Create flag to say "we already checked local files":
           repos.step_check('compare_md5_trees',create=True)
@@ -384,10 +384,10 @@ else:
           if repos.really_do:
               if not o.safe:
                   if repos.step_check('delete_remote'):
-                      GC.say('[AVOIDED] Deleting remote files...')
+                      LC.say('[AVOIDED] Deleting remote files...')
                   else:
                       string = 'Deleting remote files...'
-                      GC.say(string)
+                      LC.say(string)
                       repos.nuke_remote()
                       repos.step_check('delete_remote',create=True)
 
@@ -395,10 +395,10 @@ else:
           
               # Safe or not safe, upload:
               if repos.step_check('upload'):
-                  GC.say('[AVOIDED] Uploading...')
+                  LC.say('[AVOIDED] Uploading...')
               else:
                   string = 'Uploading...'
-                  GC.say(string)
+                  LC.say(string)
                   success = repos.upload()
                   repos.step_check('upload',create=True)
                   
@@ -409,10 +409,10 @@ else:
                 
               # Write index file to remote repo:
               if repos.step_check('write_remote_index'):
-                  GC.say('[AVOIDED] Saving index.dat remotely...')
+                  LC.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
-                  GC.say(string)
+                  LC.say(string)
                   repos.save('index.dat', local=False)
                   repos.step_check('write_remote_index',create=True)
 
@@ -431,7 +431,7 @@ else:
           if repos.really_do:
               if not o.safe:
                   if repos.step_check('delete_local'):
-                      GC.say('[AVOIDED] Deleting local files...')
+                      LC.say('[AVOIDED] Deleting local files...')
                   else:
                       # Delete files only in local:
                       repos.nuke_local()
@@ -441,10 +441,10 @@ else:
 
               # Safe or not, download:
               if repos.step_check('download'):
-                  GC.say('[AVOIDED] Downloading...')
+                  LC.say('[AVOIDED] Downloading...')
               else:
                   string = 'Downloading...'
-                  GC.say(string)
+                  LC.say(string)
                   success = repos.download()
                   repos.step_check('download',create=True)
               
@@ -458,10 +458,10 @@ else:
 
               # Write index file to remote repo:
               if repos.step_check('write_remote_index'):
-                  GC.say('[AVOIDED] Saving index.dat remotely...')
+                  LC.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
-                  GC.say(string)
+                  LC.say(string)
                   repos.save('index.dat', local=False)
                   repos.step_check('write_remote_index',create=True)
 
@@ -469,7 +469,7 @@ else:
       # there was nothing to do:
       if success or not any_diff:
           string = 'Cleaning up...'
-          GC.say(string)
+          LC.say(string)
           repos.clean()
 
       times.milestone('Finalize')
