@@ -639,27 +639,37 @@ class Repositories:
       superceding the ones in local.
       '''
 
-      # Build list of files to dl from repo (defined by md5 hash):
-      tmpfile = '{0}/filelist.txt'.format(self.tmpdir)
-      f = open(tmpfile,'w')
+      # List of file(-hashe)s to download:
+      lista = []
       for h in self.diff.remote_hash:
-          f.write(h+'.gpg\n')
-
+          lista.append(h)
       for h in self.diff.newremote_hash:
-          f.write(h+'.gpg\n')
-      f.close()
+          lista.append(h)
 
-      # Download all of them from repo to tmpdir:
-      fmt = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
-      fmt += ' {0.tmpdir}/data/'
-      cmnd = fmt.format(self,tmpfile)
-      try:
-          self.doit(cmnd,2)
-          os.unlink(tmpfile)
-      except:
-          return False
+      # Check which ones present remotely:
+      dir = self.cfg.conf['REPODIR']
+      server = self.cfg.prefs['REMOTE']
+      newlist = get_present_files(server, dir, lista)
 
-      # List of files we just downloaded:
+      # Proceed only if some or all are present:
+      if newlist:
+          # Build list of files to dl from repo (defined by md5 hash):
+          tmpfile = '{0}/filelist.txt'.format(self.tmpdir)
+          with open(tmpfile,'w') as f:
+              for h in newlist:
+                  f.write(h+'.gpg\n')
+
+          # Download all of them from repo to tmpdir:
+          fmt = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
+          fmt += ' {0.tmpdir}/data/'
+          cmnd = fmt.format(self,tmpfile)
+          try:
+              self.doit(cmnd,2)
+              os.unlink(tmpfile)
+          except:
+              return False
+
+      # List of file names of files we just downloaded (or tried to):
       file_list = []
 
       for fn in self.diff.remote:
@@ -689,11 +699,11 @@ class Repositories:
           fn = '%s/data/%s' % (self.tmpdir, fgpg)
 
           if os.path.exists(fn):
-	      # First un-GPG it to tmp dir:
+              # First un-GPG it to tmp dir:
               cmnd = '{0} -o "{1}/tmp" -d "{2}"'.format(self.gpgcom, self.tmpdir, fn)
               self.doit(cmnd,2)
 
-	      # Then check if not corrupted:
+              # Then check if not corrupted:
               ref = file.hash_remote
               act = hashof('{0}/tmp'.format(self.tmpdir))
               
@@ -1241,3 +1251,39 @@ class Configuration:
                 sys.exit()
 
 #--------------------------------------------------------------------------------#
+
+def get_present_files(server, dir, files):
+    '''
+    Returns a list of which files of the list "files" is present in directory "dir",
+    in server "server".
+    '''
+
+    # Build a script to use SFTP to do what we need to do:
+    string  = 'sftp {0} <<EOF\n'.format(server)
+    string += 'cd {0}\n'.format(dir)
+
+    for file in files:
+        string += 'ls {0}\n'.format(file)
+
+    string += 'EOF\n'
+
+    tmpf = 'check.sftp'
+    with open(tmpf,'w') as f:
+        f.write(string)
+
+    # Use script and get output:
+    cmnd = 'bash {0}'.format(tmpf)
+    s = sp.Popen(cmnd, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+    out = s.communicate()[0].decode('utf-8')
+
+    # Extract present files from output:
+    present = []
+    for line in out.split('\n'):
+        for file in files:
+            if file in line and not 'ls '+file in line:
+                present.append(file)
+
+    # Clean up:
+    os.unlink(tmpf)
+
+    return present
