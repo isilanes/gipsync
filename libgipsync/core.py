@@ -686,19 +686,16 @@ class Repositories:
           file = self.files[fn]
           fgpg = '{0}.gpg'.format(file.hash_remote)
 
-          # Warn of what is being done:
-          print('\033[32m[DOWN]\033[0m %s' % (fitit(file.name)))
-
-          # Create local dir to accomodate file, if necessary:
-          dir_to = file.fullname().split('/')[:-1]
-          dir_to = '/'.join(dir_to)
-          if not os.path.isdir(dir_to):
-              os.makedirs(dir_to)
-
           # Source GPG file:
-          fn = '%s/data/%s' % (self.tmpdir, fgpg)
+          fn = '{0}/data/{1}'.format(self.tmpdir, fgpg)
 
           if os.path.exists(fn):
+              # Create local dir to accomodate file, if necessary:
+              dir_to = file.fullname().split('/')[:-1]
+              dir_to = '/'.join(dir_to)
+              if not os.path.isdir(dir_to):
+                  os.makedirs(dir_to)
+
               # First un-GPG it to tmp dir:
               cmnd = '{0} -o "{1}/tmp" -d "{2}"'.format(self.gpgcom, self.tmpdir, fn)
               self.doit(cmnd,2)
@@ -708,6 +705,9 @@ class Repositories:
               act = hashof('{0}/tmp'.format(self.tmpdir))
               
               if ref == act: # then it is OK. Proceed:
+                  # Warn of what is being done:
+                  print('\033[32m[DOWN]\033[0m %s' % (fitit(file.name)))
+
                   # Move tmp file into actual destination:
                   cmnd = 'mv -f "{0}/tmp" "{1}"'.format(self.tmpdir,file.fullname())
                   self.doit(cmnd)
