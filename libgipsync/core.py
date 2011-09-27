@@ -1260,10 +1260,10 @@ def get_present_files(server, dir, files):
 
     # Build a script to use SFTP to do what we need to do:
     string  = 'sftp {0} <<EOF\n'.format(server)
-    string += 'cd {0}\n'.format(dir)
+    string += 'cd {0}/data\n'.format(dir)
 
     for file in files:
-        string += 'ls {0}\n'.format(file)
+        string += 'ls {0}.gpg\n'.format(file)
 
     string += 'EOF\n'
 
