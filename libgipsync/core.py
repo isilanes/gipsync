@@ -465,6 +465,11 @@ class Repositories:
       file_list.extend(self.diff.newlocal)
       file_list.extend(self.diff.local)
 
+      # Exit early if nothing to do:
+      if not file_list:
+          return True
+
+      # In this case, we need to upload stuff:
       if self.really_do and file_list:
           # First encrypt files to tmp dir:
           self.encrypt(file_list, self.options.size_control)
@@ -498,6 +503,9 @@ class Repositories:
               v.mtime_remote = v.mtime_local
 
           return True
+
+      # If we reach this point, return False:
+      return False
 
   # ----- #
 
