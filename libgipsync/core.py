@@ -914,14 +914,19 @@ class Repositories:
 
   # ----- #
 
-  def step_check(self,what=None,create=False):
-      '''
-      Check if some step has been completed in a previous run, and do not repeat.
-      '''
+  def step_check(self, what=None, create=False):
+      '''Check if some step has been completed in a previous run, and do not repeat.'''
 
+      # Directly avoid doing anything if command-line option --fresh was used:
+      if self.options.fresh:
+          return False
+
+      # Return and do nothing if not asked what step to check for:
       if not what:
           return False
 
+      # This is the checkpoint file that should be present if step was completed
+      # in a previous run:
       check_file = '{0}/{1}.completed'.format(self.tmpdir, what)
 
       if create:

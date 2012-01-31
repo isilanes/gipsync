@@ -3,7 +3,7 @@
 
 '''
 GPG/rsync
-(c) 2008-2011, Iñaki Silanes
+(c) 2008-2012, Iñaki Silanes
 
 LICENSE
 
@@ -100,6 +100,11 @@ parser.add_option("-l", "--limit-bw",
                   help="Limit bandwidth usage to LIMIT kB/s. Default: no limit.",
                   metavar='LIMIT',
 		  default=0)
+
+parser.add_option("-F", "--fresh",
+                  help="Do not try to recover from previous interupted run. Start afresh instead. Default: recover when available.",
+		  action="store_true",
+		  default=False)
 
 (o,args) = parser.parse_args()
 
@@ -282,6 +287,7 @@ else:
           # Sync local proxy repo with remote repo:
           LC.say(string)
           repos.get_index() # first download only index.dat.gpg
+
           # Create flag to say "we already downloaded index.dat":
           repos.step_check('dl_index.dat',create=True)
       
