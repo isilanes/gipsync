@@ -407,7 +407,7 @@ else:
                   
           if repos.really_do:
               if not o.safe:
-                  if not o.fresh and 'delete_remote' in repos.done:
+                  if o.safe or not o.fresh and 'delete_remote' in repos.done:
                       LC.say('[AVOIDED] Deleting remote files...')
                   else:
                       string = 'Deleting remote files...'
@@ -430,7 +430,8 @@ else:
                   success = repos.upload()
 
                   # Create flag to say "we already uploaded files":
-                  repos.done['upload'] = True
+                  if success:
+                      repos.done['upload'] = True
                   
               # For each step, we pickle and log time:
               repos.pickle()
