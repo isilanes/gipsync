@@ -142,6 +142,7 @@ class Repositories:
       self.options      = opt        # optparse options
       self.really_do    = False
       self.cfg          = cfg        # Configuration object holding all config and prefs
+      self.done         = {}         # list of steps done
 
       # rsync command:
       try:
@@ -836,9 +837,7 @@ class Repositories:
   # ----- #
 
   def clean(self):
-      '''
-      Clean up, which basically means rm tmpdir.
-      '''
+      '''Clean up, which basically means rm tmpdir.'''
 
       if not self.options.keep:
           if os.path.isdir(self.tmpdir):
@@ -914,7 +913,7 @@ class Repositories:
 
   # ----- #
 
-  def step_check(self, what=None, create=False):
+  def step_check(self, what=None):
       '''Check if some step has been completed in a previous run, and do not repeat.'''
 
       # Directly avoid doing anything if command-line option --fresh was used:
@@ -925,34 +924,23 @@ class Repositories:
       if not what:
           return False
 
-      # This is the checkpoint file that should be present if step was completed
-      # in a previous run:
-      check_file = '{0}/{1}.completed'.format(self.tmpdir, what)
-
-      if create:
-          # Create an empty file that tells us a given step has been completed.
-          with open(check_file,'w') as f:
-              f.write('')
-
-      else:
-          # If not told to create file, means we have been asked to check if exists:
-          if os.path.isfile(check_file):
-              return True
+      # Then we've been told to check if task was finished, not log it:
+      if what in self.done:
+          return True
 
       return False
 
   # ----- #
 
-  def pickle_it(self,read=False):
-      '''
-      Save/read repos object to/from file.
-      '''
+  def pickle(self, read=False):
+      '''Save/read repos object to/from file.'''
 
-      pickle_file = '{0}/repo.pickled'.format(self.tmpdir)
+      pickle_file = '{0}/repo.pickle'.format(self.tmpdir)
 
       if read: # then read pickled data, not write it.
-          with open(pickle_file,'rb') as f:
-              return pickle.load(f)
+          if os.path.isfile(pickle_file): # if pickle_file does not exist, do nothing
+              with open(pickle_file,'rb') as f:
+                  self = pickle.load(f)
       else:
           with open(pickle_file,'wb') as f:
               pickle.dump(self,f)

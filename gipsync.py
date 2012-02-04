@@ -255,17 +255,18 @@ else:
       cfg.read_conf(what)
       cfg.check()
 
-      # Initialize repo:
-      repos = LC.Repositories(o,cfg)
+      # Initialize repo, and read from pickle, if present:
+      repos = LC.Repositories(o, cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
+      repos.pickle(read=True)
+      repos.options = o # use user-given options, not pickled ones from previous run
 
       # Create tmpdir if necessary:
       tmpdata = repos.tmpdir + '/data'
       try:
           os.makedirs(tmpdata)
       except:
-          # If it already exists
-          pass
+          pass # if it already exists
       
       if o.verbosity < 1:
           repos.gpgcom += ' --no-tty '
@@ -281,7 +282,7 @@ else:
 
       # Check if remote data already downloaded:
       string = 'Downloading index.dat...'
-      if repos.step_check('dl_index.dat'):
+      if not o.fresh and 'dl_index' in repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
       else:
           # Sync local proxy repo with remote repo:
@@ -289,87 +290,99 @@ else:
           repos.get_index() # first download only index.dat.gpg
 
           # Create flag to say "we already downloaded index.dat":
-          repos.step_check('dl_index.dat',create=True)
+          repos.done['dl_index'] = True
       
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Download remote index')
 
       # Get remote md5tree:
       string = 'Reading remote md5tree...'
-      if repos.step_check('read_index.dat'):
+      if not o.fresh and 'read_index' in  repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
-          repos = repos.pickle_it(read=True)
       else:
           LC.say(string)
           repos.read_remote()
+
           # Create flag to say "we already read remote index.dat":
-          repos.step_check('read_index.dat',create=True)
-          repos.pickle_it()
-      
+          repos.done['read_index'] = True
+
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Read remote index')
 
       # --- Read local data --- #
 
       hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
       string = 'Reading local md5tree...'
-      if repos.step_check('read_local_md5s'):
+      if not o.fresh and 'read_local_md5s' in repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
-          repos = repos.pickle_it(read=True)
       else:
           # Read local file hashes from conf (for those files that didn't change):
           LC.say(string)
           repos.read(hash_file)
+
           # Create flag to say "we already read local md5 file":
-          repos.step_check('read_local_md5s',create=True)
-          repos.pickle_it()
+          repos.done['read_local_md5s'] = True
       
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Initialize')
 
       # Traverse source and get list of file hashes:
       string = 'Finding new/different local files...'
-      if repos.step_check('check_local_files'):
+      if not o.fresh and 'check_local_files' in repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
-          repos = repos.pickle_it(read=True)
       else:
           LC.say(string)
           repos.walk()
+
           # Create flag to say "we already checked local files":
-          repos.step_check('check_local_files',create=True)
-          repos.pickle_it()
+          repos.done['check_local_files'] = True
       
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Dir walk')
       
       # --- Write back local data --- #
       
       # Save local hashes, be it dry or real run:
       string = 'Saving local data...'
-      if repos.step_check('save_local_md5s'):
+      if not o.fresh and 'save_local_md5s' in repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
       else:
           LC.say(string)
           repos.save(hash_file)
+
           # Create flag to say "we already saved local MD5s":
-          repos.step_check('save_local_md5s',create=True)
+          repos.done['save_local_md5s'] = True
+      
+      # For each step, we pickle and log time:
+      repos.pickle()
+      times.milestone('Save local hash')
       
       # --- Actually do stuff --- #
       
       # Compare remote and local md5 trees:
       string = 'Comparing remote/local...'
-      if repos.step_check('compare_md5_trees'):
+      if not o.fresh and 'compare_md5_trees' in repos.done:
           LC.say('[AVOIDED] {0}'.format(string))
-          repos = repos.pickle_it(read=True)
       else:
           LC.say(string)
           repos.compare()
+
           # Create flag to say "we already checked local files":
-          repos.step_check('compare_md5_trees',create=True)
-          repos.pickle_it()
+          repos.done['compare_md5_trees'] = True
       
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Compare')
       
       # Sort lists, for easy reading:
       repos.diff.sort()
-      repos.pickle_it()
-      
+
+      # For each step, we pickle and log time:
+      repos.pickle()
       times.milestone('Sort diff')
       
       # Act according to differences in repos:
@@ -389,38 +402,52 @@ else:
                   
           if repos.really_do:
               if not o.safe:
-                  if repos.step_check('delete_remote'):
+                  if not o.fresh and 'delete_remote' in repos.done:
                       LC.say('[AVOIDED] Deleting remote files...')
                   else:
                       string = 'Deleting remote files...'
                       LC.say(string)
                       repos.nuke_remote()
-                      repos.step_check('delete_remote',create=True)
 
+                      # Create flag to say "we already deleted remote files":
+                      repos.done['delete_remote'] = True
+
+              # For each step, we pickle and log time:
+              repos.pickle()
               times.milestone('Nuke up')
           
               # Safe or not safe, upload:
-              if repos.step_check('upload'):
+              if not o.fresh and 'upload' in repos.done:
                   LC.say('[AVOIDED] Uploading...')
               else:
                   string = 'Uploading...'
                   LC.say(string)
                   success = repos.upload()
-                  repos.step_check('upload',create=True)
+
+                  # Create flag to say "we already uploaded files":
+                  repos.done['upload'] = True
                   
+              # For each step, we pickle and log time:
+              repos.pickle()
               times.milestone('Upload')
 
               if not success:
                   sys.exit()
                 
               # Write index file to remote repo:
-              if repos.step_check('write_remote_index'):
+              if not o.fresh and 'write_remote_index' in repos.done:
                   LC.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
                   LC.say(string)
                   repos.save('index.dat', local=False)
-                  repos.step_check('write_remote_index',create=True)
+
+                  # Create flag to say "we already wrote remote index":
+                  repos.done['write_remote_index'] = True
+
+              # For each step, we pickle and log time:
+              repos.pickle()
+              times.milestone('Write remote index')
 
       ############
       # Download #
