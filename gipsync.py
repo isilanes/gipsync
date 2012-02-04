@@ -106,6 +106,11 @@ parser.add_option("-F", "--fresh",
 		  action="store_true",
 		  default=False)
 
+parser.add_option("--update-equals",
+                  help="If remote/local mtimes of a file coincide, but MD5s differ, update (upload local if -u, download remote otherwise. Default: Ignore (and warn about) such cases.",
+		  action="store_true",
+		  default=False)
+
 (o,args) = parser.parse_args()
 
 #--------------------------------------------------------------------------------#
@@ -258,7 +263,7 @@ else:
       # Initialize repo, and read from pickle, if present:
       repos = LC.Repositories(o, cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
-      repos.pickle(read=True)
+      repos = repos.pickle(read=True)
       repos.options = o # use user-given options, not pickled ones from previous run
 
       # Create tmpdir if necessary:

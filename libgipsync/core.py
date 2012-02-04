@@ -395,9 +395,7 @@ class Repositories:
   # ----- #
 
   def compare(self):
-    '''
-    Compare local and remote repositories.
-    '''
+    '''Compare local and remote repositories.'''
 
     # Check in single loop:
     for k,v in self.files.items():
@@ -413,19 +411,26 @@ class Repositories:
                         self.diff.newremote.append(k)
                         self.diff.newremote_hash[v.hash_remote] = k
                         if self.options.verbosity > 0:
-                            fmt = '\ndiff: local [%s] -- remote [\033[32m%s\033[0m] %s'
-                            print(fmt % (T.e2d(lmt), T.e2d(rmt), k))
+                            fmt = '\ndiff: local [{0}] -- remote [\033[32m{1}\033[0m] {2}'
+                            print(fmt.format(T.e2d(lmt), T.e2d(rmt), k))
 
                     elif lmt > rmt or (self.options.up and self.options.force_hash):
                         self.diff.newlocal.append(k)
                         self.diff.newlocal_hash[v.hash_local] = k
                         if self.options.verbosity > 0:
-                            fmt = '\ndiff: local [\033[32m%s\033[0m] -- remote [%s] %s'
-                            print(fmt % (T.e2d(lmt), T.e2d(rmt), k))
+                            fmt = '\ndiff: local [\033[32m{0}\033[0m] -- remote [{1}] {2}'
+                            print(fmt.format(T.e2d(lmt), T.e2d(rmt), k))
 
                     else:
                         fmt = '\033[33m[WARN]\033[0m "{0}" differs, but has same mtime.'
                         print(fmt.format(k))
+                        if self.options.update_equals:
+                            if self.options.up:
+                                self.diff.newlocal.append(k)
+                                self.diff.newlocal_hash[v.hash_local] = k
+                            else:
+                                self.diff.newremote.append(k)
+                                self.diff.newremote_hash[v.hash_remote] = k
 
             else:  # then file exists only locally
                 self.diff.local.append(k)
@@ -940,10 +945,10 @@ class Repositories:
       if read: # then read pickled data, not write it.
           if os.path.isfile(pickle_file): # if pickle_file does not exist, do nothing
               with open(pickle_file,'rb') as f:
-                  self = pickle.load(f)
+                  return pickle.load(f)
       else:
           with open(pickle_file,'wb') as f:
-              pickle.dump(self,f)
+              pickle.dump(self, f)
 
 #--------------------------------------------------------------------------------#
 
