@@ -463,24 +463,32 @@ else:
                       
           if repos.really_do:
               if not o.safe:
-                  if repos.step_check('delete_local'):
+                  if not o.fresh and 'delete_local' in repos.done:
                       LC.say('[AVOIDED] Deleting local files...')
                   else:
                       # Delete files only in local:
                       repos.nuke_local()
-                      repos.step_check('delete_local',create=True)
 
+                      # Create flag to say "we already deleted local files":
+                      repos.done['delete_local'] = True
+                      
+                  # For each step, we pickle and log time:
+                  repos.pickle()
                   times.milestone('Nuke local')
 
               # Safe or not, download:
-              if repos.step_check('download'):
+              if not o.fresh and 'download' in repos.done:
                   LC.say('[AVOIDED] Downloading...')
               else:
                   string = 'Downloading...'
                   LC.say(string)
                   success = repos.download()
-                  repos.step_check('download',create=True)
+
+                  # Create flag to say "we already downloaded remote files":
+                  repos.done['download'] = True
               
+              # For each step, we pickle and log time:
+              repos.pickle()
               times.milestone('Download')
 
               if not success:
@@ -490,13 +498,19 @@ else:
               repos.save(hash_file)
 
               # Write index file to remote repo:
-              if repos.step_check('write_remote_index'):
+              if not o.fresh and 'write_remote_index' in repos.done:
                   LC.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
                   LC.say(string)
                   repos.save('index.dat', local=False)
-                  repos.step_check('write_remote_index',create=True)
+
+                  # Create flag to say "we already wrote remote index":
+                  repos.done['write_remote_index'] = True
+
+              # For each step, we pickle and log time:
+              repos.pickle()
+              times.milestone('Save remote index')
 
       # Cleanup, either because all went well, or because 
       # there was nothing to do:
