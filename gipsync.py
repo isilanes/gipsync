@@ -260,11 +260,12 @@ else:
       cfg.read_conf(what)
       cfg.check()
 
-      # Initialize repo, and read from pickle, if present:
+      # Initialize repo, and read from pickle, if present and not o.fresh:
       repos = LC.Repositories(o, cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
-      repos = repos.pickle(read=True)
-      repos.options = o # use user-given options, not pickled ones from previous run
+      if not o.fresh:
+          repos = repos.pickle(read=True)
+          repos.options = o # use user-given options, not pickled ones from previous run
 
       # Create tmpdir if necessary:
       tmpdata = repos.tmpdir + '/data'
