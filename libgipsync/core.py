@@ -124,9 +124,7 @@ class Fileitem:
 #--------------------------------------------------------------------------------#
 
 class Repositories:
-  '''
-  All the data about both local and remote repos.
-  '''
+  '''All the data about both local and remote repos.'''
 
   def __init__(self,opt=None, cfg=None):
       self.files        = {}        # dict of filename/file object
@@ -943,9 +941,11 @@ class Repositories:
       pickle_file = '{0}/repo.pickle'.format(self.tmpdir)
 
       if read: # then read pickled data, not write it.
-          if os.path.isfile(pickle_file): # if pickle_file does not exist, do nothing
+          if os.path.isfile(pickle_file): 
               with open(pickle_file,'rb') as f:
                   return pickle.load(f)
+          else: # if pickle_file does not exist, do nothing
+              return self
       else:
           with open(pickle_file,'wb') as f:
               pickle.dump(self, f)
