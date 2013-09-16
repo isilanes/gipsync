@@ -321,17 +321,10 @@ class Repositories:
           tfn = '%s/%s' % (self.tmpdir, fn)
           string = ''
 
-          if self.options.new:
-              # Then we are creating a new repo.
-              for lfn in self.files_local:
-                  v = self.files[lfn]
-                  fmt = '{0}|{1.hash_local}:{1.size_local}:{1.mtime_local}\n'
-                  string += fmt.format(lfn, v)
-          else:
-              for lfn in self.files_remote:
-                  v = self.files[lfn]
-                  fmt = '{0}|{1.hash_remote}:{1.size_remote}:{1.mtime_remote}\n'
-                  string += fmt.format(lfn, v)
+          for lfn in self.files_remote:
+              v = self.files[lfn]
+              fmt = '{0}|{1.hash_remote}:{1.size_remote}:{1.mtime_remote}\n'
+              string += fmt.format(lfn, v)
 
           f = open(tfn,'w')
           f.write(string)

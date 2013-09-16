@@ -3,7 +3,7 @@
 
 '''
 GPG/rsync
-(c) 2008-2012, Iñaki Silanes
+(c) 2008-2013, Iñaki Silanes
 
 LICENSE
 
@@ -33,7 +33,6 @@ Then, in some other computer:
 '''
 
 import os
-import re
 import sys
 import optparse
 import libgipsync.core as LC
@@ -81,11 +80,6 @@ parser.add_option("-d", "--delete",
 		  type=float,
                   default=None)
 
-parser.add_option("-n", "--new",
-                  help="Create a new repo, from a config dir. Initial index file will be that of local reference. Default: False.",
-		  action="store_true",
-		  default=False)
-
 parser.add_option("-c", "--sync",
                   help="Sync remote repo to local (e.g. to delete files). Default: False.",
 		  action="store_true",
@@ -126,91 +120,11 @@ cfg.read_prefs()
 
 ####################
 #                  #
-# CREATION SECTION #
-#                  #
-####################
-
-if o.new:
-  tn = LC.now()
-
-  try:
-      conf_name = args[0]
-  except:
-      msg = 'You must input config name if you want to create new repo.'
-      sys.exit(msg)
-
-  # Check that conf file exists, and read it:
-  cfile = '{0}/{1}.conf'.format(conf_dir,conf_name)
-  if os.path.isfile(cfile):
-      conf = LC.conf2dic(cfile)
-  else:
-      msg = 'Requested file "{0}" does not exist!'.format(cfile)
-      sys.exit(msg)
-  
-  # Check that repo dir is mounted:
-  pivotdir = prefs['PIVOTDIR']
-  if not os.path.isdir(pivotdir):
-      msg = 'Can not find dir "{0}". Is it mounted?'.format(pivotdir)
-      sys.exit(msg)
-
-  # Create repo dir:
-  proxy_repo = '{0}/{1}'.format(pivotdir, conf['REPODIR'])
-  repos.proxy = proxy_repo
-
-  if not os.path.isdir(proxy_repo):
-    os.mkdir(proxy_repo)
-
-  data_dir = proxy_repo+'/data'
-  if not os.path.isdir(data_dir):
-    os.mkdir(data_dir)
-
-  # Create tmpdir:
-  repos = LC.Repositories(o,la)
-  repos.tmpdir = '{0}/ongoing.{1}'.format(conf_dir, conf_name)
-  if not os.path.isdir(repos.tmpdir):
-      os.mkdir(repos.tmpdir)
-
-  # --- Read local data --- #
-
-  # Read local file hashes from conf (for those files that didn't change):
-  hash_file = '{0}/{1}.md5'.format(conf_dir, conf_name)
-  if os.path.isfile(hash_file):
-    repos.read(hash_file)
-
-  # Read local excludes from .excludes:
-  excludes_file = '{0}/{1}.excludes'.format(conf_dir, conf_name)
-  if os.path.isfile(excludes_file):
-    repos.excludes = LC.conf2dic(excludes_file)
-
-  times.milestone('Initialize')
-
-  # Set variables if checks passed:
-  repos.path_local = re.sub('/$','',conf['LOCALDIR'])
-  repos.recipient  = prefs['RECIPIENT']
-
-  # Traverse source and get list of file hashes:
-  repos.walk()
-
-  times.milestone('Dir walk')
-
-  # Write index file to remote repo:
-  tmpdat = '{0}/index.dat'.format(repos.tmpdir)
-  repos.save('index.dat', local=False)
-
-  times.milestone('Create index')
-
-  # Cleanup:
-  repos.clean()
-
-  times.milestone('Finalize')
-
-####################
-#                  #
 # DELETION SECTION #
 #                  #
 ####################
 
-elif o.delete:
+if o.delete:
     # Check that repo dir is mounted:
     dir = cfg.prefs['PIVOTDIR']
     if not os.path.isdir(dir):
