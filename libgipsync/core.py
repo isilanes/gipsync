@@ -1205,10 +1205,8 @@ class Configuration:
 
         fn = self.dir + '/config.json'
         try:
-            #self.prefs = conf2dic(fn)
             with open(fn) as f:
-                J = json.load(f)
-                self.prefs = J
+                self.prefs = json.load(f)
         except:
             print('Could not read global preferences at "{0}"'.format(fn))
             sys.exit()
@@ -1221,9 +1219,10 @@ class Configuration:
         '''
 
         # Read .conf file for repo:
-        cfile = '{0}/{1}.conf'.format(self.dir, what)
+        cfile = '{0}/{1}.json'.format(self.dir, what)
         try:
-            self.conf = conf2dic(cfile)
+            with open(cfile) as f:
+                self.conf = json.load(f)
         except:
             print('Could not read configuration of repo "{0}"'.format(what))
             sys.exit()
