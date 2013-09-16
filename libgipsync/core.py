@@ -1,9 +1,10 @@
 import re
 import os
 import sys
+import time
+import json
 import shutil
 import hashlib
-import time
 import datetime
 import subprocess as sp
 import pickle
@@ -1202,9 +1203,12 @@ class Configuration:
         Read the global preferences.
         '''
 
-        fn = self.dir + '/config'
+        fn = self.dir + '/config.json'
         try:
-            self.prefs = conf2dic(fn)
+            #self.prefs = conf2dic(fn)
+            with open(fn) as f:
+                J = json.load(f)
+                self.prefs = J
         except:
             print('Could not read global preferences at "{0}"'.format(fn))
             sys.exit()
