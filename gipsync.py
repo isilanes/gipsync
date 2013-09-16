@@ -252,7 +252,7 @@ elif o.delete:
 else:
   # Check arguments:
   if args and args[0] == 'all':
-      args = cfg.prefs['ALL'].split(',')
+      args = cfg.prefs['ALL']
 
   # Perform actions for each repo named in args:
   for what in args:
