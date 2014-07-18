@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# coding=utf-8
+# -*- coding=utf-8 -*-
 
 '''
 GPG/rsync
-(c) 2008-2013, Iñaki Silanes
+(c) 2008-2014, Iñaki Silanes
 
 LICENSE
 
@@ -35,7 +35,8 @@ Then, in some other computer:
 import os
 import sys
 import optparse
-import libgipsync.core as LC
+
+from libgipsync import core
 
 #--------------------------------------------------#
 
@@ -111,9 +112,9 @@ parser.add_option("--update-equals",
 
 # --- Initialization --- #
 
-times = LC.Timing()
-cfg = LC.Configuration()
-cfg.dir = '{0[HOME]}/.gipsync'.format(os.environ)
+times = core.Timing()
+cfg = core.Configuration()
+cfg.dir = os.path.join(os.environ['HOME'], '.gipsync')
 cfg.read_prefs()
 
 #--------------------------------------------------------------------------------#
@@ -132,7 +133,7 @@ if o.delete:
         sys.exit(msg)
 
     # Get info:
-    sizes = LC.collect_sizes(dir)
+    sizes = core.collect_sizes(dir)
 
     # Sort info by date:
     sizes.sort()
@@ -144,7 +145,7 @@ if o.delete:
 
     goon = True
     while goon:
-        returned = LC.delete_asked(sizes, todelete)
+        returned = core.delete_asked(sizes, todelete)
         if returned:
             string = 'How many MBs do you want to delete?: '
             todelete = input(string)
@@ -175,7 +176,7 @@ else:
       cfg.check()
 
       # Initialize repo, and read from pickle, if present and not o.fresh:
-      repos = LC.Repositories(o, cfg)
+      repos = core.Repositories(o, cfg)
       repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
       if not o.fresh:
           repos = repos.pickle(read=True)
@@ -196,17 +197,17 @@ else:
       # Print info:
       fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
       string = fmt.format(what, cfg.conf['LOCALDIR'])
-      LC.say(string)
+      core.say(string)
       
       # --- Read remote data --- #
 
       # Check if remote data already downloaded:
       string = 'Downloading index.dat...'
       if not o.fresh and 'dl_index' in repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
           # Sync local proxy repo with remote repo:
-          LC.say(string)
+          core.say(string)
           repos.get_index() # first download only index.dat.gpg
 
           # Create flag to say "we already downloaded index.dat":
@@ -219,9 +220,9 @@ else:
       # Get remote md5tree:
       string = 'Reading remote md5tree...'
       if not o.fresh and 'read_index' in  repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
-          LC.say(string)
+          core.say(string)
           repos.read_remote()
 
           # Create flag to say "we already read remote index.dat":
@@ -236,10 +237,10 @@ else:
       hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
       string = 'Reading local md5tree...'
       if not o.fresh and 'read_local_md5s' in repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
           # Read local file hashes from conf (for those files that didn't change):
-          LC.say(string)
+          core.say(string)
           repos.read(hash_file)
 
           # Create flag to say "we already read local md5 file":
@@ -252,9 +253,9 @@ else:
       # Traverse source and get list of file hashes:
       string = 'Finding new/different local files...'
       if not o.fresh and 'check_local_files' in repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
-          LC.say(string)
+          core.say(string)
           repos.walk()
 
           # Create flag to say "we already checked local files":
@@ -269,9 +270,9 @@ else:
       # Save local hashes, be it dry or real run:
       string = 'Saving local data...'
       if not o.fresh and 'save_local_md5s' in repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
-          LC.say(string)
+          core.say(string)
           repos.save(hash_file)
 
           # Create flag to say "we already saved local MD5s":
@@ -286,9 +287,9 @@ else:
       # Compare remote and local md5 trees:
       string = 'Comparing remote/local...'
       if not o.fresh and 'compare_md5_trees' in repos.done:
-          LC.say('[AVOIDED] {0}'.format(string))
+          core.say('[AVOIDED] {0}'.format(string))
       else:
-          LC.say(string)
+          core.say(string)
           repos.compare()
 
           # Create flag to say "we already checked local files":
@@ -323,10 +324,10 @@ else:
           if repos.really_do:
               if not o.safe:
                   if o.safe or not o.fresh and 'delete_remote' in repos.done:
-                      LC.say('[AVOIDED] Deleting remote files...')
+                      core.say('[AVOIDED] Deleting remote files...')
                   else:
                       string = 'Deleting remote files...'
-                      LC.say(string)
+                      core.say(string)
                       repos.nuke_remote()
 
                       # Create flag to say "we already deleted remote files":
@@ -338,10 +339,10 @@ else:
           
               # Safe or not safe, upload:
               if not o.fresh and 'upload' in repos.done:
-                  LC.say('[AVOIDED] Uploading...')
+                  core.say('[AVOIDED] Uploading...')
               else:
                   string = 'Uploading...'
-                  LC.say(string)
+                  core.say(string)
                   success = repos.upload()
 
                   # Create flag to say "we already uploaded files":
@@ -357,10 +358,10 @@ else:
                 
               # Write index file to remote repo:
               if not o.fresh and 'write_remote_index' in repos.done:
-                  LC.say('[AVOIDED] Saving index.dat remotely...')
+                  core.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
-                  LC.say(string)
+                  core.say(string)
                   repos.save('index.dat', local=False)
 
                   # Create flag to say "we already wrote remote index":
@@ -385,7 +386,7 @@ else:
           if repos.really_do:
               if not o.safe:
                   if not o.fresh and 'delete_local' in repos.done:
-                      LC.say('[AVOIDED] Deleting local files...')
+                      core.say('[AVOIDED] Deleting local files...')
                   else:
                       # Delete files only in local:
                       repos.nuke_local()
@@ -399,10 +400,10 @@ else:
 
               # Safe or not, download:
               if not o.fresh and 'download' in repos.done:
-                  LC.say('[AVOIDED] Downloading...')
+                  core.say('[AVOIDED] Downloading...')
               else:
                   string = 'Downloading...'
-                  LC.say(string)
+                  core.say(string)
                   success = repos.download()
 
                   # Create flag to say "we already downloaded remote files":
@@ -420,10 +421,10 @@ else:
 
               # Write index file to remote repo:
               if not o.fresh and 'write_remote_index' in repos.done:
-                  LC.say('[AVOIDED] Saving index.dat remotely...')
+                  core.say('[AVOIDED] Saving index.dat remotely...')
               else:
                   string = 'Saving index.dat remotely...'
-                  LC.say(string)
+                  core.say(string)
                   repos.save('index.dat', local=False)
 
                   # Create flag to say "we already wrote remote index":
@@ -437,7 +438,7 @@ else:
       # there was nothing to do:
       if success or not any_diff:
           string = 'Cleaning up...'
-          LC.say(string)
+          core.say(string)
           repos.clean()
 
       times.milestone('Finalize')
