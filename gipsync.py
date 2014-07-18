@@ -182,29 +182,16 @@ else:
       cfg.read_conf(what)
       cfg.check()
 
-      # Initialize repo, and read from pickle, if present and not o.fresh:
-      repos = classes.Repositories(o, cfg)
-      repos.tmpdir = '{0}/ongoing.{1}'.format(cfg.dir, what)
+      # Initialize repo (read from pickle, if present and not o.fresh):
+      repos = classes.Repositories(opts=o, cfg=cfg, what=what)
       if not o.fresh:
           repos = repos.pickle(read=True)
-          repos.options = o # use user-given options, not pickled ones from previous run
+          repos.options = o # use currently user-given options, not pickled ones
 
-      # Create tmpdir if necessary:
-      tmpdata = repos.tmpdir + '/data'
-      try:
-          os.makedirs(tmpdata)
-      except:
-          pass # if it already exists
-      
-      if o.verbosity < 1:
-          repos.gpgcom += ' --no-tty '
-          
       times.milestone('Read confs')
       
       # Print info:
-      fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
-      string = fmt.format(what, cfg.conf['LOCALDIR'])
-      core.say(string)
+      core.message('repo', what=what, cfg=cfg)
       
       # --- Read remote data --- #
 
@@ -241,7 +228,7 @@ else:
 
       # --- Read local data --- #
 
-      hash_file = '{0}/{1}.md5'.format(cfg.dir, what)
+      hash_file = os.path.join(cfg.dir, '{0}.md5'.format(what))
       string = 'Reading local md5tree...'
       if not o.fresh and 'read_local_md5s' in repos.done:
           core.say('[AVOIDED] {0}'.format(string))

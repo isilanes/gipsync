@@ -63,7 +63,6 @@ class Configuration:
         self.dir = dir  # where config files are
         self.prefs = {} # global preferences
         self.conf  = {} # config of current repo
-        self.excludes = {} # excluded files
 
         # Default config dir, if not givem:
         if not self.dir:
@@ -99,11 +98,6 @@ class Configuration:
         except:
             print('Could not find variable "LOCALDIR" in configuration')
             sys.exit()
-
-        # Read .excludes file for repo:
-        #excludes_file = '{0}/{1}.excludes'.format(self.dir, what)
-        #if os.path.isfile(excludes_file):
-            #self.excludes = conf2dic(excludes_file)
     def check(self):
         ''' Check that essential configuration variables are set.'''
 
@@ -111,15 +105,13 @@ class Configuration:
             if not var in self.conf:
                 fmt = 'Sorry, but variable "{0}" is not specified in conf file'
                 string = fmt.format(var)
-                print(string)
-                sys.exit()
+                sys.exit(string)
 
         for var in ['RECIPIENT', 'REMOTE']:
             if not var in self.prefs:
                 fmt = 'Sorry, but variable "{0}" is not specified in global config file'
                 string = fmt.format(var)
-                print(string)
-                sys.exit()
+                sys.exit(string)
 
 #--------------------------------------------------------------------------------#
 
@@ -192,18 +184,14 @@ def bytes2size(bytes):
 
     return '%.2f %s' % (sz, units[i])
 
-def find_exc(it,patts):
-    '''
-    Return True if item "it" matches some pattern in "patts", False otherwise.
-    '''
+def find_exc(it, patts):
+    '''Return True if item "it" matches some pattern in "patts", False otherwise.'''
 
-    found = False
     for patt in patts:
         if patt in it:
-            found = True
-            break
+            return True
 
-    return found
+    return False
 
 def collect_sizes(dir):
     '''
@@ -266,21 +254,20 @@ def say(string=None):
         print('\033[1m%s\033[0m' % (string))
 
 def conf2dic(fname,separator='='):
-   '''Read a configuration file and interpret its lines as "key=value" pairs, assigning them
-   to a dictionary, and returning it.
-     fname = file name of the configuration file to read.'''
+    '''Read a configuration file and interpret its lines as "key=value" pairs, assigning them
+    to a dictionary, and returning it.
+       fname = file name of the configuration file to read.'''
+     
+    cf = {}
 
-   cf = {}
+    with open(fname) as f:
+        for line in f:
+            line = line.replace('\n','')
+            if line and not line[0] == '#': # ignore blank lines and comments
+                aline = line.split(separator)
+                cf[aline[0]] = separator.join(aline[1:])
 
-   f = open(fname,'r')
-   for line in f:
-       line = line.replace('\n','')
-       if line and not line[0] == '#': # ignore blank lines and comments
-           aline = line.split(separator)
-           cf[aline[0]] = separator.join(aline[1:])
-   f.close()
-
-   return cf
+    return cf
 
 def now():
     ''' Return current time, in seconds since epoch format.'''
@@ -334,5 +321,11 @@ def get_present_files(server, dir, files):
     os.unlink(tmpf)
 
     return present
+
+def message(which, what, cfg):
+    if which == 'repo':
+        fmt = "\nRepository: \033[34m{0}\033[0m @ \033[34m{1}\033[0m"
+        string = fmt.format(what, cfg.conf['LOCALDIR'])
+        say(string)
 
 #--------------------------------------------------------------------------------#
