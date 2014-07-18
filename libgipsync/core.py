@@ -116,7 +116,8 @@ class Configuration:
 
         for var in ['RECIPIENT', 'REMOTE']:
             if not var in self.prefs:
-                string = 'Sorry, but variable "{0}" is not specified in global config file'
+                fmt = 'Sorry, but variable "{0}" is not specified in global config file'
+                string = fmt.format(var)
                 print(string)
                 sys.exit()
 
