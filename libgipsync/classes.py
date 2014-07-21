@@ -543,8 +543,8 @@ class Repositories:
             cmnd = 'rm -f "%s/%s"' % (self.cfg.conf['LOCALDIR'], name)
             self.doit(cmnd,2)
 
-        if self.really_do:
-            del self.files_local[name]
+            if self.really_do:
+                del self.files_local[name]
     def say_nuke_local(self):
         if self.diff.local:
             print('\n')
