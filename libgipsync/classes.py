@@ -454,7 +454,7 @@ class Repositories:
         # Check which ones present remotely:
         dir = self.cfg.conf['REPODIR']
         server = self.cfg.prefs['REMOTE']
-        newlist = get_present_files(server, dir, lista)
+        newlist = core.get_present_files(server, dir, lista)
 
         # Proceed only if some or all are present:
         if newlist:
@@ -463,7 +463,6 @@ class Repositories:
             with open(tmpfile,'w') as f:
                 for h in newlist:
                     f.write(h+'.gpg\n')
-
             # Download all of them from repo to tmpdir:
             fmt = '{0.rsync} -vh --progress {0.cfg.prefs[REMOTE]}/{0.cfg.conf[REPODIR]}/data/ --files-from={1}'
             fmt += ' {0.tmpdir}/data/'
