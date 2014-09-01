@@ -184,8 +184,12 @@ class Repositories:
                 f.write(string)
 
             # GPG temporary file tfn:
-            fmt = '{0.gpgcom} -r {0.cfg.prefs[RECIPIENT]} -o "{0.tmpdir}/{1}.gpg" -e "{2}"'
-            cmnd = fmt.format(self, fn, tfn)
+            cmnd = '{0.gpgcom} -o "{0.tmpdir}/{1}.gpg" '.format(self, fn)
+            for recipient in self.cfg.prefs['RECIPIENTS']:
+                cmnd += ' -r {0} '.format(recipient)
+            cmnd += ' -e {0} '.format(tfn)
+            #fmt = '{0.gpgcom} -r {0.cfg.prefs[RECIPIENT]} -o "{0.tmpdir}/{1}.gpg" -e "{2}"'
+            #cmnd = fmt.format(self, fn, tfn)
             self.doit(cmnd,2)
 
             # Upload to remote:
@@ -360,8 +364,12 @@ class Repositories:
                     if self.options.verbosity < 2:
                         string = '\033[32m[GPG]\033[0m {0}'.format(core.fitit(name))
                         print(string)
-                    fmt = '{0} -r {1} -o "{2}" -e "{3}"'
-                    cmnd = fmt.format(self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
+                    cmnd = '{0.gpgcom} -o {1} '.format(self, lfile)
+                    for recipient in self.cfg.prefs['RECIPIENTS']:
+                        cmnd += ' -r {0} '.format(recipient)
+                    cmnd += ' -e "{0}" '.format(v.fullname())
+                    #fmt = '{0} -r {1} -o "{2}" -e "{3}"'
+                    #cmnd = fmt.format(self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
                     self.doit(cmnd,2)
     def nuke_remote(self):
         '''Remove the files not present (or newer) locally from remote repo.'''

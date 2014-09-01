@@ -1,6 +1,6 @@
 {
   "REMOTE": "user@remoteip:/remotedir/gipsync",
-  "RECIPIENT": "12345678",
+  "RECIPIENTS": ["12345678"],
   "ALL": [ "example", "example2" ],
   "PIVOTDIR" : "/mnt/remote/gipsync"
 }

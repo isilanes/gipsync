@@ -107,7 +107,7 @@ class Configuration:
                 string = fmt.format(var)
                 sys.exit(string)
 
-        for var in ['RECIPIENT', 'REMOTE']:
+        for var in ['RECIPIENTS', 'REMOTE']:
             if not var in self.prefs:
                 fmt = 'Sorry, but variable "{0}" is not specified in global config file'
                 string = fmt.format(var)
