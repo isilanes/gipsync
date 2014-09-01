@@ -328,4 +328,12 @@ def message(which, what, cfg):
         string = fmt.format(what, cfg.conf['LOCALDIR'])
         say(string)
 
+def e2d(epoch=0):
+  '''Takes a date in seconds since epoch, 
+  and returns YYYY-MM-DD HH:MM:SS format.'''
+
+  date = datetime.datetime.fromtimestamp(epoch)
+
+  return date.strftime('%Y-%m-%d %H:%M:%S')
+
 #--------------------------------------------------------------------------------#

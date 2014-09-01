@@ -249,14 +249,14 @@ class Repositories:
                             self.diff.newremote_hash[v.hash_remote] = k
                             if self.options.verbosity > 0:
                                 fmt = '\ndiff: local [{0}] -- remote [\033[32m{1}\033[0m] {2}'
-                                print(fmt.format(T.e2d(lmt), T.e2d(rmt), k))
+                                print(fmt.format(core.e2d(lmt), core.e2d(rmt), k))
 
                         elif lmt > rmt or (self.options.up and self.options.force_hash):
                             self.diff.newlocal.append(k)
                             self.diff.newlocal_hash[v.hash_local] = k
                             if self.options.verbosity > 0:
                                 fmt = '\ndiff: local [\033[32m{0}\033[0m] -- remote [{1}] {2}'
-                                print(fmt.format(T.e2d(lmt), T.e2d(rmt), k))
+                                print(fmt.format(core.e2d(lmt), core.e2d(rmt), k))
 
                         else:
                             fmt = '\033[33m[WARN]\033[0m "{0}" differs, but has same mtime.'
