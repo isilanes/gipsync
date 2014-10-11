@@ -43,6 +43,7 @@ class Repositories:
         # Make gpg more verbose?:
         if self.options.verbosity < 1:
             self.gpgcom += ' --no-tty '
+
     def read(self, fromfile):
         if os.path.isfile(fromfile):
             for k,v in core.conf2dic(fromfile,separator='|').items():
@@ -62,6 +63,7 @@ class Repositories:
         else:
             msj = 'Can\'t read from non existint file "{0}"!'.format(fromfile)
             sys.exit(msj)
+
     def dict2files(self, dict, here=True):
         fi = {}
 
@@ -85,6 +87,7 @@ class Repositories:
                 fi[k].mtime_remote = float(av[2])
                 
         return fi
+
     def walk(self):
         '''Perform the acts upon each dir in the dir walk (get mtimes, MD5s, etc).'''
   
@@ -154,6 +157,7 @@ class Repositories:
         
                             if self.options.verbosity > 2: # VERY verbose!
                                 print('[SKIP]: {0}'.format(core.fitit(fname)))
+
     def save(self, fn, local=True):
         '''Save hashes of current file list in file "fn" (either index.dat, or
         the corresponding file in ~/.gipsync/).'''
@@ -204,6 +208,7 @@ class Repositories:
 
             cmnd = cmnd1 + cmnd2 + cmnd3
             self.doit(cmnd,666)
+
     def read_remote(self):
         '''Read remote repo metadata.'''
 
@@ -231,6 +236,7 @@ class Repositories:
             self.files[k].hash_remote  = av[0]
             self.files[k].size_remote  = float(av[1])
             self.files[k].mtime_remote = float(av[2])
+
     def compare(self):
         '''Compare local and remote repositories.'''
 
@@ -294,6 +300,7 @@ class Repositories:
             print("New remote:")
             for k,v in self.diff.newremote_hash.items():
                 print(k,v)
+
     def upload(self):
         '''Upload files from local to remote.'''
 
@@ -343,6 +350,7 @@ class Repositories:
 
         # If we reach this point, return False:
         return False
+    
     def encrypt(self, file_list, control):
         if file_list:
             print('\n')
@@ -371,6 +379,7 @@ class Repositories:
                     #fmt = '{0} -r {1} -o "{2}" -e "{3}"'
                     #cmnd = fmt.format(self.gpgcom, self.cfg.prefs['RECIPIENT'], lfile, v.fullname())
                     self.doit(cmnd,2)
+
     def nuke_remote(self):
         '''Remove the files not present (or newer) locally from remote repo.'''
 
@@ -400,6 +409,7 @@ class Repositories:
                 # Delete nuked files from list of remote files:
                 for fn in fn_list:
                     del self.files_remote[fn]
+
     def enumerate(self,summary=True):
         if self.options.up:
           if not self.options.safe:
@@ -440,6 +450,7 @@ class Repositories:
                     print('\033[33m[SYNC]\033[0m {0}'.format(core.fitit(name)))
         if summary:
             self.summary()
+
     def say_nuke_remote(self):
         '''Print corresponding message for each file we are deleting
         from remote, with nuke_remote().'''
@@ -448,6 +459,7 @@ class Repositories:
             print('\n')
             for name in self.diff.remote:
                 print('\033[31m[DEL]\033[0m {0}'.format(core.fitit(name)))
+
     def download(self):
         '''Execute the downloading of remote files not in local, or
         superceding the ones in local.'''
@@ -543,6 +555,7 @@ class Repositories:
 
         # If all went OK, return True:
         return True
+
     def nuke_local(self):
         '''When downloading, delete the local files not in remote repo.'''
         
@@ -552,11 +565,13 @@ class Repositories:
 
             if self.really_do:
                 del self.files_local[name]
+
     def say_nuke_local(self):
         if self.diff.local:
             print('\n')
             for name in self.diff.local:
                 print('\033[31m[DEL]\033[0m {0}'.format(core.fitit(name)))
+
     def summary(self):
         lsl  = len(self.diff.local)
         lsr  = len(self.diff.remote)
@@ -612,12 +627,14 @@ class Repositories:
                     print('{0:30}: {1} ({2})'.format(msj, lsl, core.bytes2size(size_rm)))
     
                 print('{0:30}: {1}'.format("Diff files, newer locally",lddl))
+
     def clean(self):
         '''Clean up, which basically means rm tmpdir.'''
 
         if not self.options.keep:
             if os.path.isdir(self.tmpdir):
                 shutil.rmtree(self.tmpdir)
+
     def get_index(self):
         '''Gets the remote index.dat file.'''
         
@@ -634,6 +651,7 @@ class Repositories:
 
         # Perform rsync:
         self.doit(cmnd)
+
     def doit(self,command,level=1,fatal_errors=True):
         '''Run/print command, depending on dry-run-nes and verbosity.'''
         
@@ -647,6 +665,7 @@ class Repositories:
             if ret != 0:
                 print('Error running command:\n%s' % (command))
                 sys.exit()
+
     def ask(self,up=True):
         '''Ask for permission to proceed, if need be.'''
 
@@ -668,6 +687,7 @@ class Repositories:
         else:
             # There was no difference:
             return False
+
     def step_check(self, what=None):
         '''Check if some step has been completed in a previous run, and do not repeat.'''
 
@@ -684,6 +704,7 @@ class Repositories:
             return True
 
         return False
+
     def pickle(self, read=False):
         '''Save/read repos object to/from file.'''
 
@@ -699,7 +720,6 @@ class Repositories:
             with open(pickle_file,'wb') as f:
                 pickle.dump(self, f)
 
-# --- #
 
 class Fileitem:
     '''Each of the items of the list of local or remote files, 
@@ -720,21 +740,22 @@ class Fileitem:
         self.hash_read   = None
         self.hash_local  = None
         self.hash_remote = None
+
     def fullname(self):
-        '''
-        Return full (local) name of file.
-        '''
+        '''Return full (local) name of file.'''
+
         return '%s/%s' % (self.repos.cfg.conf['LOCALDIR'], self.name)
+
     def get_hash(self):
         '''Calc hash function for Fileitem.'''
 
         return core.hashof(self.fullname())
+
     def get_size(self):
         '''Calc file size for Fileitem.'''
 
         self.size_local = os.path.getsize(self.fullname())
 
-# --- #
 
 class RepoDiff:
     ''' An object to store differences between local/remote repos.'''
@@ -755,10 +776,12 @@ class RepoDiff:
         # Files that exist in both repos, but are newer in remote:
         self.newremote = [] # list of filenames
         self.newremote_hash = {} # dict of hash -> filename 
+
     def sort(self):
         self.local     = sorted(self.local)
         self.remote    = sorted(self.remote)
         self.newlocal  = sorted(self.newlocal)
         self.newremote = sorted(self.newremote)
+
 
 #--------------------------------------------------------------------------------#
