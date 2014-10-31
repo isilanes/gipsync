@@ -9,12 +9,13 @@ import subprocess as sp
 
 #--------------------------------------------------------------------------------#
 
-class Timing:
+class Timing(object):
       
     def __init__(self):
         self.t0         = now()
         self.milestones = []
         self.data       = {}
+
     def milestone(self,id=None):
         '''Add a milestone to list. A milestone is just a point in time that 
         we record.'''
@@ -31,6 +32,7 @@ class Timing:
         
         self.milestones.append(id)
         self.data[id] = { 'time' : tnow }
+
     def summary(self):
         '''Print out a summary of timing so far.'''
         
@@ -54,9 +56,8 @@ class Timing:
             
         print(smry)
 
-# --- #
 
-class Configuration:
+class Configuration(object):
     '''Class containing all info of configurations.'''
 
     def __init__(self, dir=None):
@@ -67,6 +68,7 @@ class Configuration:
         # Default config dir, if not givem:
         if not self.dir:
             self.dir = os.path.join(os.environ['HOME'], '.gipsync')
+
     def read_prefs(self):
         ''' Read the global preferences.'''
 
@@ -77,6 +79,7 @@ class Configuration:
         except:
             print('Could not read global preferences at "{0}"'.format(fn))
             sys.exit()
+
     def read_conf(self, what=None):
         '''Read the configuration for repo named "what" (both .conf 
         and  .excludes files).'''
@@ -98,6 +101,7 @@ class Configuration:
         except:
             print('Could not find variable "LOCALDIR" in configuration')
             sys.exit()
+
     def check(self):
         ''' Check that essential configuration variables are set.'''
 
@@ -112,6 +116,7 @@ class Configuration:
                 fmt = 'Sorry, but variable "{0}" is not specified in global config file'
                 string = fmt.format(var)
                 sys.exit(string)
+
 
 #--------------------------------------------------------------------------------#
 
@@ -154,26 +159,22 @@ def fitit(path,limit=None):
   return newpath
 
 def hashof(fn):
-    '''
-    Calc hash function for file.
-    '''
+    '''Calc hash function for file.'''
 
     h = hashlib.md5()
 
-    f = open(fn,'rb')
-    while True:
-        t = f.read(4096)
-        if len(t) == 0:
-            break
-        h.update(t)
-    f.close()
+    with open(fn,'rb') as f:
+        while True:
+            t = f.read(4096)
+            if len(t) == 0:
+                break
+            h.update(t)
     
     return h.hexdigest()
 
 def bytes2size(bytes):
-    '''
-    Get a number of bytes, and return in human-friendly form (kB, MB, etc).
-    '''
+    '''Get a number of bytes, and return in human-friendly form (kB, MB, etc).'''
+
     units = ['B', 'kB', 'MB', 'GB']
     
     i = 0
@@ -194,9 +195,7 @@ def find_exc(it, patts):
     return False
 
 def collect_sizes(dir):
-    '''
-    Collect the size of all data in remote repo (mounted locally by SSHFS).
-    '''
+    '''Collect the size of all data in remote repo (mounted locally by SSHFS).'''
 
     sizes = []
 
@@ -216,9 +215,7 @@ def collect_sizes(dir):
     return sizes
 
 def delete_asked(sizes,todelete):
-    '''
-    Delete files from pivot dir, until given size is reached.
-    '''
+    '''Delete files from pivot dir, until given size is reached.'''
 
     tn = now()
     tfiles = len(sizes)
@@ -246,9 +243,7 @@ def delete_asked(sizes,todelete):
             return True
 
 def say(string=None):
-    '''
-    Print out a message.
-    '''
+    '''Print out a message.'''
 
     if string:
         print('\033[1m%s\033[0m' % (string))
@@ -271,6 +266,7 @@ def conf2dic(fname,separator='='):
 
 def now():
     ''' Return current time, in seconds since epoch format.'''
+
     date = datetime.datetime.now()
     
     return time.mktime(date.timetuple())
@@ -329,11 +325,12 @@ def message(which, what, cfg):
         say(string)
 
 def e2d(epoch=0):
-  '''Takes a date in seconds since epoch, 
-  and returns YYYY-MM-DD HH:MM:SS format.'''
+    '''Takes a date in seconds since epoch, 
+    and returns YYYY-MM-DD HH:MM:SS format.'''
 
-  date = datetime.datetime.fromtimestamp(epoch)
+    date = datetime.datetime.fromtimestamp(epoch)
 
-  return date.strftime('%Y-%m-%d %H:%M:%S')
+    return date.strftime('%Y-%m-%d %H:%M:%S')
+
 
 #--------------------------------------------------------------------------------#
