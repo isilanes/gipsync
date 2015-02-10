@@ -8,7 +8,7 @@ from libgipsync import core
 
 #--------------------------------------------------------------------------------#
 
-class Repositories:
+class Repositories(object):
     '''All the data about both local and remote repos.'''
   
     def __init__(self, opts, cfg, what):
@@ -721,7 +721,7 @@ class Repositories:
                 pickle.dump(self, f)
 
 
-class Fileitem:
+class Fileitem(ojbect):
     '''Each of the items of the list of local or remote files, 
     holding its characteristics.'''
 
@@ -757,7 +757,7 @@ class Fileitem:
         self.size_local = os.path.getsize(self.fullname())
 
 
-class RepoDiff:
+class RepoDiff(object):
     ''' An object to store differences between local/remote repos.'''
 
     def __init__(self):

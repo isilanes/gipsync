@@ -3,7 +3,7 @@
 
 '''
 GPG/rsync
-(c) 2008-2014, Iñaki Silanes
+(c) 2008-2015, Iñaki Silanes
 
 LICENSE
 
@@ -38,8 +38,7 @@ import os
 import sys
 import argparse
 
-from libgipsync import core
-from libgipsync import classes
+from libgipsync import core, classes
 
 #--------------------------------------------------#
 
