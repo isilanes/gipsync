@@ -63,7 +63,7 @@ class Configuration(object):
     def __init__(self, dir=None):
         self.dir = dir  # where config files are
         self.prefs = {} # global preferences
-        self.conf  = {} # config of current repo
+        self.conf = {}  # config of current repo
 
         # Default config dir, if not givem:
         if not self.dir:
@@ -82,7 +82,7 @@ class Configuration(object):
 
     def read_conf(self, what=None):
         '''Read the configuration for repo named "what" (both .conf 
-        and  .excludes files).'''
+        and .excludes files).'''
 
         # Read .conf file for repo:
         jfn = '{0}.json'.format(what)

@@ -21,9 +21,9 @@ class Repositories(object):
         self.walked       = 0          # total considered files
         self.hashed       = 0          # total files for which hash was calculated
         self.diff         = RepoDiff() # difference between repos
-        self.options = opts            # optparse options
+        self.options      = opts       # optparse options
         self.done         = {}         # list of steps done
-        self.cfg = cfg                 # Configuration object holding all config and prefs
+        self.cfg          = cfg        # Configuration object holding all config and prefs
         self.really_do = False
         self.tmpdir = os.path.join(self.cfg.dir, 'ongoing.{0}'.format(what))
 
@@ -721,7 +721,7 @@ class Repositories(object):
                 pickle.dump(self, f)
 
 
-class Fileitem(ojbect):
+class Fileitem(object):
     '''Each of the items of the list of local or remote files, 
     holding its characteristics.'''
 

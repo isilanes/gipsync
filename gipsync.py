@@ -181,6 +181,12 @@ else:
       cfg.read_conf(what)
       cfg.check()
 
+      # Check that localdir is present:
+      ldir = cfg.conf['LOCALDIR']
+      if not os.path.isdir(ldir):
+          print("[ERROR] Required local dir '{0}' not present".format(ldir))
+          sys.exit()
+
       # Initialize repo (read from pickle, if present and not o.fresh):
       repos = classes.Repositories(opts=o, cfg=cfg, what=what)
       if not o.fresh:
