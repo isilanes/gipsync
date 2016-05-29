@@ -6,10 +6,8 @@ import subprocess as sp
 
 from libgipsync import core
 
-#--------------------------------------------------------------------------------#
-
 class Repositories(object):
-    '''All the data about both local and remote repos.'''
+    """All the data about both local and remote repos."""
   
     def __init__(self, opts, cfg, what):
         self.files        = {}        # dict of filename/file object
@@ -720,10 +718,8 @@ class Repositories(object):
             with open(pickle_file,'wb') as f:
                 pickle.dump(self, f)
 
-
 class Fileitem(object):
-    '''Each of the items of the list of local or remote files, 
-    holding its characteristics.'''
+    """Each of the items of the list of local or remote files, holding its characteristics."""
 
     def __init__(self, name=None, repos=None):
         self.name  = name
@@ -756,9 +752,8 @@ class Fileitem(object):
 
         self.size_local = os.path.getsize(self.fullname())
 
-
 class RepoDiff(object):
-    ''' An object to store differences between local/remote repos.'''
+    """An object to store differences between local/remote repos."""
 
     def __init__(self):
         # Files that exist only in local repo;
@@ -782,6 +777,3 @@ class RepoDiff(object):
         self.remote    = sorted(self.remote)
         self.newlocal  = sorted(self.newlocal)
         self.newremote = sorted(self.newremote)
-
-
-#--------------------------------------------------------------------------------#
