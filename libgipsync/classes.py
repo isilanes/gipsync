@@ -208,7 +208,7 @@ class Repositories(object):
             self.doit(cmnd,666)
 
     def read_remote(self):
-        '''Read remote repo metadata.'''
+        """Read remote repo metadata."""
 
         fn = 'index.dat'
         cmnd = '{0.gpgcom} -o "{0.tmpdir}/{1}" -d "{0.tmpdir}/{1}.gpg"'.format(self, fn)
@@ -738,17 +738,17 @@ class Fileitem(object):
         self.hash_remote = None
 
     def fullname(self):
-        '''Return full (local) name of file.'''
+        """Return full (local) name of file."""
 
         return '%s/%s' % (self.repos.cfg.conf['LOCALDIR'], self.name)
 
     def get_hash(self):
-        '''Calc hash function for Fileitem.'''
+        """Calc hash function for Fileitem."""
 
         return core.hashof(self.fullname())
 
     def get_size(self):
-        '''Calc file size for Fileitem.'''
+        """Calc file size for Fileitem."""
 
         self.size_local = os.path.getsize(self.fullname())
 
@@ -777,3 +777,17 @@ class RepoDiff(object):
         self.remote    = sorted(self.remote)
         self.newlocal  = sorted(self.newlocal)
         self.newremote = sorted(self.newremote)
+
+class Repo(object):
+
+    def __init__(object):
+        pass
+
+class RemoteRepo(Repo):
+    pass
+
+class LocalRepo(Repo):
+    pass
+
+class Assembly(object):
+    pass

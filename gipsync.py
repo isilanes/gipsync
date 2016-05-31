@@ -40,6 +40,11 @@ import sys
 from libgipsync import core
 from libgipsync import classes
 
+R = classes.Repo()
+LR = classes.LocalRepo()
+RR = classes.RemoteRepo()
+
+exit()
 # --- Initialization --- #
 
 o = core.read_args()
