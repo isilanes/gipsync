@@ -40,11 +40,6 @@ import sys
 from libgipsync import core
 from libgipsync import classes
 
-R = classes.Repo()
-LR = classes.LocalRepo()
-RR = classes.RemoteRepo()
-
-exit()
 # --- Initialization --- #
 
 o = core.read_args()
@@ -53,6 +48,11 @@ times = core.Timing()
 cfg = core.Configuration()
 cfg.read_prefs()
 
+R = classes.Repo(cfg)
+LR = classes.LocalRepo(cfg)
+RR = classes.RemoteRepo(cfg)
+
+exit()
 #--------------------------------------------------------------------------------#
 
 ####################

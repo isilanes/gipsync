@@ -778,10 +778,55 @@ class RepoDiff(object):
         self.newlocal  = sorted(self.newlocal)
         self.newremote = sorted(self.newremote)
 
+
+class FileItem(object):
+    """All characteristics of a given file."""
+
+    def __init__(self, name):
+        self.name = name
+        self.size = 0
+        self.mtime = 0
+        self.hash = None
+
 class Repo(object):
 
-    def __init__(object):
-        pass
+    def __init__(self, cfg):
+        self.files = {
+            "actual": {}, # dict of path -> FileItem for actual files
+            "read": {},   # dict of path -> FileItem for files read from log
+        }
+        self.cfg = cfg # Configuration object holding all config and prefs
+
+    def read_log_dict(self, dlog):
+        """Populate self.files_read, when passed the contents of a log file, as a dict "dlog"."""
+
+        for k,v in dlog.items():
+            try:
+                hash, sz, mtime = v.split(':')
+            except:
+                msg = "Could not process line: {line}".format(line=v)
+                print(msg)
+                continue
+            
+            self.files["read"][k] = FileItem(name=k)
+            self.files["read"][k].hash = hash
+            self.files["read"][k].size = sz
+            self.files["read"][k].mtime = mtime
+
+    def fullpath(self, FI):
+        """Return full path of FileItem 'FI'."""
+
+        return os.path.join(self.cfg.conf["LOCALDIR"], FI.name)
+
+    def get_hash(self, FI):
+        """Calculate hash function for FileItem 'FI'."""
+
+        return core.hashof(self.fullpath(FI))
+
+    def get_size(self, FI):
+        """Calculate file size for FileItem 'FI'."""
+
+        return os.path.getsize(self.fullpath(FI))
 
 class RemoteRepo(Repo):
     pass

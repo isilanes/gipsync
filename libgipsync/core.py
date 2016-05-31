@@ -344,24 +344,29 @@ class Timing(object):
 class Configuration(object):
     """Class containing all info of configurations."""
 
-    def __init__(self, dir=None):
-        self.dir = dir  # where config files are
+    def __init__(self, basedir=None):
+        self.basedir = basedir  # where config files are
         self.prefs = {} # global preferences
         self.conf = {}  # config of current repo
 
         # Default config dir, if not givem:
-        if not self.dir:
-            self.dir = os.path.join(os.environ['HOME'], '.gipsync')
+        if not self.basedir:
+            self.basedir = os.path.join(os.environ['HOME'], '.gipsync')
 
-    def read_prefs(self):
+        # Global config file name:
+        self.global_fn = os.path.join(self.basedir, 'config.json')
+
+    def read_prefs(self, fn=None):
         """Read the global preferences."""
 
-        fn = os.path.join(self.dir, 'config.json')
+        if not fn:
+            fn = self.global_fn
+
         try:
             with open(fn) as f:
                 self.prefs = json.load(f)
         except:
-            print('Could not read global preferences at "{0}"'.format(fn))
+            print('Could not read global preferences at "{fn}"'.format(fn=fn))
             sys.exit()
 
     def read_conf(self, what=None):
@@ -369,7 +374,7 @@ class Configuration(object):
 
         # Read .conf file for repo:
         jfn = '{0}.json'.format(what)
-        cfile = os.path.join(self.dir, jfn)
+        cfile = os.path.join(self.basedir, jfn)
         try:
             with open(cfile) as f:
                 self.conf = json.load(f)
