@@ -82,6 +82,76 @@ def read_args():
 
     return parser.parse_args()
 
+def collect_sizes(dir):
+    """Collect the size of files in given dir.
+    Return return sorted array of [ timestamp, filename, size ] elements. If path does not exist, return empty list."""
+
+    sizes = []
+
+    for path, dirs, files in os.walk(dir):
+        if os.path.basename(path) == 'data':
+            for file in files:
+                fn = os.path.join(path, file)
+                sz = os.path.getsize(fn)
+                mt = os.path.getmtime(fn)
+                sizes.append([ mt, fn, sz ])
+
+    return sorted(sizes)
+
+def since_epoch():
+    """Return current time, in seconds since epoch format."""
+
+    date = datetime.datetime.now()
+    
+    return time.mktime(date.timetuple())
+
+def delete_asked(sizes, todelete):
+    """Delete files from pivot dir, until "todelete" MB are deleted.
+    Return True if so many files deleted, False if finished before deleting that many."""
+
+    current_secs = since_epoch()
+    tfiles = len(sizes)
+    todelete = todelete*1024*1024 # MB to bytes
+
+    idel, deleted = 0, 0
+    while len(sizes):
+        mtime, fn, sz = sizes.pop(0)
+        
+        idel += 1
+        deleted += sz
+        ago = (current_secs - mtime)/86400.0
+
+        fmt = '{i:>4d}/{tot}  {fn:20}  {s:>10}  {d:>10}  {ago:>6.2f} d'
+        string = fmt.format(i=idel, tot=tfiles, fn=os.path.basename(fn), s=bytes2size(sz), d=bytes2size(deleted), ago=ago)
+        print(string)
+        #os.unlink(fn)
+
+        if deleted > todelete:
+            return True
+
+    return False
+
+def perform_deletion(cfg, opts):
+    # Get info:
+    sizes = collect_sizes(cfg.prefs['PIVOTDIR'])
+
+    # Delete up to freeing requestes size, starting from oldest files:
+    todelete = opts.delete
+    while True:
+        returned = delete_asked(sizes, todelete)
+        if returned:
+            string = 'How many MBs do you want to delete?: '
+            todelete = raw_input(string)
+            if not todelete:
+                break
+            try:
+                todelete = float(todelete)
+            except:
+                break
+        else:
+            break
+
+
 def fitit(path,limit=None):
     """Make a given string (path) fit in the screen width."""
 
@@ -159,54 +229,6 @@ def find_exc(it, patts):
 
     return False
 
-def collect_sizes(dir):
-    """Collect the size of all data in remote repo (mounted locally by SSHFS)."""
-
-    sizes = []
-
-    for path, dirs, files in os.walk(dir):
-        print(path)
-        if os.path.basename(path) == 'data':
-            for file in files:
-                fn = os.path.join(path,file)
-                sz = os.path.getsize(fn)
-                mt = os.path.getmtime(fn)
-                
-                k = '%i.%s.%i' % (int(mt), fn, sz)
-                sizes.append(k)
-                sys.stdout.write('.') # "progress bar"
-            print('')
-
-    return sizes
-
-def delete_asked(sizes,todelete):
-    """Delete files from pivot dir, until given size is reached."""
-
-    tn = now()
-    tfiles = len(sizes)
-
-    idel = 0
-    deleted = 0
-    while len(sizes):
-        x = sizes.pop(0)
-        xplit = x.split('.')
-        datex = int(xplit[0])
-        jfn = '.'.join(xplit[1:-1])
-        fn = os.path.basename(jfn)
-        sizex = int(xplit[-1])
-
-        idel += 1
-        deleted += sizex
-
-        ago = (tn - datex)/86400.0
-
-        fmt = '{0:>4d}/{1}  {2}  {3:>10}  {4:>10}  {5:>6.2f} d'
-        print(fmt.format(idel, tfiles, fn, bytes2size(sizex), bytes2size(deleted), ago))
-        os.unlink(jfn)
-
-        if deleted > todelete:
-            return True
-
 def say(string=None):
     """Print out a message."""
 
@@ -227,13 +249,6 @@ def conf2dic(fname,separator='='):
                 cf[aline[0]] = separator.join(aline[1:])
 
     return cf
-
-def now():
-    """Return current time, in seconds since epoch format."""
-
-    date = datetime.datetime.now()
-    
-    return time.mktime(date.timetuple())
 
 def s2hms(seconds):
     """Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format."""
@@ -293,53 +308,6 @@ def e2d(epoch=0):
 
     return date.strftime('%Y-%m-%d %H:%M:%S')
 
-
-class Timing(object):
-    """Class to hold all timing stuff."""
-      
-    def __init__(self):
-        self.t0         = now()
-        self.milestones = []
-        self.data       = {}
-
-    def milestone(self,id=None):
-        """Add a milestone to list. A milestone is just a point in time that we record."""
-        
-        # ID of milestone:
-        if not id:
-            id = 'unk'
-      
-        # Avoid dupe IDs:
-        while id in self.milestones:
-            id += 'x'
-      
-        tnow = now()
-        
-        self.milestones.append(id)
-        self.data[id] = { 'time' : tnow }
-
-    def summary(self):
-        """Print out a summary of timing so far."""
-        
-        otime = self.t0
-        
-        maxl = 9
-        for milestone in self.milestones:
-            l = len(milestone) + 1
-            if l > maxl: maxl = l
-            
-        smry = '\n{0:>8} {1:>{3}} {2:>8}\n'.format('Time', 'Milestone', 'Elapsed', maxl)
-        
-        for milestone in self.milestones:
-            t = self.data[milestone]['time']
-            delta =  t - otime
-            otime = t
-            
-            tt0 = s2hms(t - self.t0)
-            dta = s2hms(delta)
-            smry += '{0:>8} {1:>{3}} {2:>8}\n'.format(tt0, milestone, dta, maxl)
-            
-        print(smry)
 
 class Configuration(object):
     """Class containing all info of configurations."""

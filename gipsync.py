@@ -44,7 +44,6 @@ from libgipsync import classes
 
 o = core.read_args()
 args = o.positional
-times = core.Timing()
 cfg = core.Configuration()
 cfg.read_prefs()
 
@@ -52,47 +51,13 @@ R = classes.Repo(cfg)
 LR = classes.LocalRepo(cfg)
 RR = classes.RemoteRepo(cfg)
 
-exit()
-#--------------------------------------------------------------------------------#
+# --- Execution --- #
 
-####################
-#                  #
-# DELETION SECTION #
-#                  #
-####################
-
+# Deletion?:
 if o.delete:
-    # Check that repo dir is mounted:
-    dir = cfg.prefs['PIVOTDIR']
-    if not os.path.isdir(dir):
-        msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
-        sys.exit(msg)
+    core.perform_deletion(cfg, o)
 
-    # Get info:
-    sizes = core.collect_sizes(dir)
-
-    # Sort info by date:
-    sizes.sort()
-
-    # Delete up to freeing requested size,
-    # starting from oldest files:
-
-    todelete = o.delete*1024*1024
-
-    goon = True
-    while goon:
-        returned = core.delete_asked(sizes, todelete)
-        if returned:
-            string = 'How many MBs do you want to delete?: '
-            todelete = input(string)
-            try:
-                todelete = float(todelete)*1024*1024
-            except:
-                goon = False
-        else:
-            goon = False
-
-    sys.exit()
+exit()
 
 ##################
 #                #
@@ -100,7 +65,7 @@ if o.delete:
 #                #
 ##################
 
-else:
+if False:
   # Check arguments:
   if args and args[0] == 'all':
       args = cfg.prefs['ALL']
@@ -123,8 +88,6 @@ else:
           repos = repos.pickle(read=True)
           repos.options = o # use currently user-given options, not pickled ones
 
-      times.milestone('Read confs')
-      
       # Print info:
       core.message('repo', what=what, cfg=cfg)
       
@@ -144,7 +107,6 @@ else:
       
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Download remote index')
 
       # Get remote md5tree:
       string = 'Reading remote md5tree...'
@@ -159,7 +121,6 @@ else:
 
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Read remote index')
 
       # --- Read local data --- #
 
@@ -177,7 +138,6 @@ else:
       
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Initialize')
 
       # Traverse source and get list of file hashes:
       string = 'Finding new/different local files...'
@@ -192,7 +152,6 @@ else:
       
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Dir walk')
       
       # --- Write back local data --- #
       
@@ -209,7 +168,6 @@ else:
       
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Save local hash')
       
       # --- Actually do stuff --- #
       
@@ -226,14 +184,12 @@ else:
       
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Compare')
       
       # Sort lists, for easy reading:
       repos.diff.sort()
 
       # For each step, we pickle and log time:
       repos.pickle()
-      times.milestone('Sort diff')
       
       # Act according to differences in repos:
       success = False
@@ -264,7 +220,6 @@ else:
 
               # For each step, we pickle and log time:
               repos.pickle()
-              times.milestone('Nuke up')
           
               # Safe or not safe, upload:
               if not o.fresh and 'upload' in repos.done:
@@ -280,7 +235,6 @@ else:
                   
               # For each step, we pickle and log time:
               repos.pickle()
-              times.milestone('Upload')
 
               if not success:
                   sys.exit()
@@ -298,7 +252,6 @@ else:
 
               # For each step, we pickle and log time:
               repos.pickle()
-              times.milestone('Write remote index')
 
       ############
       # Download #
@@ -325,7 +278,6 @@ else:
                       
                   # For each step, we pickle and log time:
                   repos.pickle()
-                  times.milestone('Nuke local')
 
               # Safe or not, download:
               if not o.fresh and 'download' in repos.done:
@@ -340,7 +292,6 @@ else:
               
               # For each step, we pickle and log time:
               repos.pickle()
-              times.milestone('Download')
 
               if not success:
                   sys.exit()
@@ -361,7 +312,6 @@ else:
 
               # For each step, we pickle and log time:
               repos.pickle()
-              times.milestone('Save remote index')
 
       # Cleanup, either because all went well, or because 
       # there was nothing to do:
@@ -370,8 +320,3 @@ else:
           core.say(string)
           repos.clean()
 
-      times.milestone('Finalize')
-
-# Lastly, print out timing summary:
-if o.timing:
-    times.summary()
