@@ -32,8 +32,6 @@ Then, in some other computer:
 $ gipsync.py blah
 """
 
-#--------------------------------------------------------------------------------#
-
 import os
 import sys
 
@@ -45,18 +43,112 @@ from libgipsync import classes
 o = core.read_args()
 args = o.positional
 cfg = core.Configuration()
-cfg.read_prefs()
-
-R = classes.Repo(cfg)
-LR = classes.LocalRepo(cfg)
-RR = classes.RemoteRepo(cfg)
 
 # --- Execution --- #
 
-# Deletion?:
+# Deletion means just deletion:
 if o.delete:
     core.perform_deletion(cfg, o)
+    exit()
 
+# If no deletion, then sync. Go on:
+if args[0] == 'all':
+    args = cfg.prefs['ALL']
+
+# Perform actions for each repo named in args:
+for what in args:
+    # Read and check configs:
+    cfg.read_conf(what)
+    
+    # Check that localdir is present:
+    ldir = cfg.conf['LOCALDIR']
+    if not os.path.isdir(ldir):
+        print("[ERROR] Required local dir '{d}' not present".format(d=ldir))
+        exit()
+        
+    # --- Read remote data --- #
+    RR = classes.RemoteRepo(cfg)
+
+    print RR.index_gpg_fn
+
+    for k,v in cfg.prefs.items():
+        print k, v
+    
+""" 
+      repos.read_remote()
+
+  # --- Read local data --- #
+
+  hash_file = os.path.join(cfg.dir, '{0}.md5'.format(what))
+  string = 'Reading local md5tree...'
+  if not o.fresh and 'read_local_md5s' in repos.done:
+      core.say('[AVOIDED] {0}'.format(string))
+  else:
+      # Read local file hashes from conf (for those files that didn't change):
+      core.say(string)
+      repos.read(hash_file)
+
+      # Create flag to say "we already read local md5 file":
+      repos.done['read_local_md5s'] = True
+  
+  # For each step, we pickle and log time:
+  repos.pickle()
+
+  # Traverse source and get list of file hashes:
+  string = 'Finding new/different local files...'
+  if not o.fresh and 'check_local_files' in repos.done:
+      core.say('[AVOIDED] {0}'.format(string))
+  else:
+      core.say(string)
+      repos.walk()
+
+      # Create flag to say "we already checked local files":
+      repos.done['check_local_files'] = True
+  
+  # For each step, we pickle and log time:
+  repos.pickle()
+  
+  # --- Write back local data --- #
+  
+  # Save local hashes, be it dry or real run:
+  string = 'Saving local data...'
+  if not o.fresh and 'save_local_md5s' in repos.done:
+      core.say('[AVOIDED] {0}'.format(string))
+  else:
+      core.say(string)
+      repos.save(hash_file)
+
+      # Create flag to say "we already saved local MD5s":
+      repos.done['save_local_md5s'] = True
+  
+  # For each step, we pickle and log time:
+  repos.pickle()
+  
+  # --- Actually do stuff --- #
+  
+  # Compare remote and local md5 trees:
+  string = 'Comparing remote/local...'
+  if not o.fresh and 'compare_md5_trees' in repos.done:
+      core.say('[AVOIDED] {0}'.format(string))
+  else:
+      core.say(string)
+      repos.compare()
+
+      # Create flag to say "we already checked local files":
+      repos.done['compare_md5_trees'] = True
+  
+  # For each step, we pickle and log time:
+  repos.pickle()
+  
+  # Sort lists, for easy reading:
+  repos.diff.sort()
+
+  # For each step, we pickle and log time:
+  repos.pickle()
+  
+  # Act according to differences in repos:
+  success = False
+""" 
 exit()
 
 ##################

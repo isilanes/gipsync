@@ -634,7 +634,7 @@ class Repositories(object):
                 shutil.rmtree(self.tmpdir)
 
     def get_index(self):
-        '''Gets the remote index.dat file.'''
+        """Gets the remote index.dat file."""
         
         # Build command:
         cmnd1 = '{0.rsync}'.format(self)
@@ -651,7 +651,7 @@ class Repositories(object):
         self.doit(cmnd)
 
     def doit(self,command,level=1,fatal_errors=True):
-        '''Run/print command, depending on dry-run-nes and verbosity.'''
+        """Run/print command, depending on dry-run-nes and verbosity."""
         
         if not self.options.verbosity < level:
             print(command)
@@ -829,7 +829,41 @@ class Repo(object):
         return os.path.getsize(self.fullpath(FI))
 
 class RemoteRepo(Repo):
-    pass
+
+    @property
+    def index_gpg_fn(self):
+        """Return full path of index.gpg."""
+
+        return os.path.join(self.cfg.prefs["PIVOTDIR"], self.cfg.conf["REPODIR"], 'index.dat.gpg')
+
+    def read_index_gpg(self):
+        """Read metadata from remote index.gpg."""
+
+        fn = 'index.dat'
+        cmnd = '{0.gpgcom} -o "{0.tmpdir}/{1}" -d "{0.tmpdir}/{1}.gpg"'.format(self, fn)
+
+        if self.options.verbosity > 0:
+            print('\n'+cmnd)
+        
+        self.doit(cmnd)
+        conf = os.path.join(self.tmpdir, fn)
+
+        dict = core.conf2dic(conf,separator='|')
+
+        for k,v in dict.items():
+            av = v.split(':')
+  
+            if len(av) < 2:
+                msj = 'The length of dictionary entry "{0}|{1}" is too short!'.format(k, v)
+                sys.exit(msj)
+            if not k in self.files:
+                self.files[k] = Fileitem(k, repos=self)
+            if not k in self.files_remote:
+                self.files_remote[k] = True
+            self.files[k].hash_remote  = av[0]
+            self.files[k].size_remote  = float(av[1])
+            self.files[k].mtime_remote = float(av[2])
+
 
 class LocalRepo(Repo):
     pass

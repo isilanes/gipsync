@@ -151,6 +151,13 @@ def perform_deletion(cfg, opts):
         else:
             break
 
+def say(string=None):
+    """Print out a message."""
+
+    if string:
+        string = '\033[1m{s}\033[0m'.format(s=string)
+        print(string)
+
 
 def fitit(path,limit=None):
     """Make a given string (path) fit in the screen width."""
@@ -228,12 +235,6 @@ def find_exc(it, patts):
             return True
 
     return False
-
-def say(string=None):
-    """Print out a message."""
-
-    if string:
-        print('\033[1m%s\033[0m' % (string))
 
 def conf2dic(fname,separator='='):
     """Read a configuration file and interpret its lines as "key=value" pairs, assigning them to a dict, and returning it.
@@ -313,9 +314,9 @@ class Configuration(object):
     """Class containing all info of configurations."""
 
     def __init__(self, basedir=None):
-        self.basedir = basedir  # where config files are
-        self.prefs = {} # global preferences
-        self.conf = {}  # config of current repo
+        self.basedir = basedir # where config files are
+        self._prefs = {} # global preferences
+        self.conf = {} # config of current repo
 
         # Default config dir, if not givem:
         if not self.basedir:
@@ -325,51 +326,66 @@ class Configuration(object):
         self.global_fn = os.path.join(self.basedir, 'config.json')
 
     def read_prefs(self, fn=None):
-        """Read the global preferences."""
+        """Read and return the global preferences."""
 
         if not fn:
             fn = self.global_fn
 
         try:
             with open(fn) as f:
-                self.prefs = json.load(f)
+                return json.load(f)
         except:
             print('Could not read global preferences at "{fn}"'.format(fn=fn))
-            sys.exit()
+            exit()
 
-    def read_conf(self, what=None):
-        """Read the configuration for repo named "what" (both .conf and .excludes files)."""
+    def read_conf(self, what):
+        """Read the configuration for repo named "what"."""
 
         # Read .conf file for repo:
-        jfn = '{0}.json'.format(what)
+        jfn = '{w}.json'.format(w=what)
         cfile = os.path.join(self.basedir, jfn)
         try:
             with open(cfile) as f:
                 self.conf = json.load(f)
         except:
             print('Could not read configuration of repo "{0}"'.format(what))
-            sys.exit()
+            exit()
 
         # Some fixes:
         try:
             # Remove trailing slash from localdir path (if any):
-            self.conf['LOCALDIR'] = re.sub('/$','',self.conf['LOCALDIR'])
+            self.conf['LOCALDIR'] = re.sub('/$','', self.conf['LOCALDIR'])
         except:
-            print('Could not find variable "LOCALDIR" in configuration')
-            sys.exit()
+            pass
 
-    def check(self):
-        """Check that essential configuration variables are set."""
+        # Whenever read, check:
+        self.check_conf()
+
+    def check_conf(self):
+        """Check that essential configuration variables (particular to a repo) are set."""
 
         for var in [ 'REPODIR', 'LOCALDIR', 'EXCLUDES' ]:
             if not var in self.conf:
-                fmt = 'Sorry, but variable "{0}" is not specified in conf file'
-                string = fmt.format(var)
-                sys.exit(string)
+                string = 'Sorry, but variable "{v}" is not specified in conf file'.format(v=var)
+                print(string)
+                exit()
+
+    def check_prefs(self):
+        """Check that essential (general) preference variables are set."""
 
         for var in ['RECIPIENTS', 'REMOTE']:
             if not var in self.prefs:
-                fmt = 'Sorry, but variable "{0}" is not specified in global config file'
-                string = fmt.format(var)
-                sys.exit(string)
+                string = 'Sorry, but variable "{v}" is not specified in global config file'.format(v=var)
+                print(string)
+                exit()
+
+    @property
+    def prefs(self):
+        """Return preferences if they have been read. Read and then return, if not."""
+
+        if not self._prefs:
+            self._prefs = self.read_prefs()
+            self.check_prefs()
+
+        return self._prefs
 
