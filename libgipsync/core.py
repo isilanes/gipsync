@@ -1,6 +1,5 @@
 import re
 import os
-import sys
 import time
 import json
 import hashlib
@@ -13,7 +12,7 @@ def read_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('positional',
-            nargs='+',
+            nargs='*',
             help="Positional arguments")
 
     parser.add_argument("-u", "--up",
@@ -124,7 +123,7 @@ def delete_asked(sizes, todelete):
         fmt = '{i:>4d}/{tot}  {fn:20}  {s:>10}  {d:>10}  {ago:>6.2f} d'
         string = fmt.format(i=idel, tot=tfiles, fn=os.path.basename(fn), s=bytes2size(sz), d=bytes2size(deleted), ago=ago)
         print(string)
-        #os.unlink(fn)
+        os.unlink(fn)
 
         if deleted > todelete:
             return True
@@ -132,6 +131,8 @@ def delete_asked(sizes, todelete):
     return False
 
 def perform_deletion(cfg, opts):
+    """Function to delete old files from remote repo."""
+
     # Get info:
     sizes = collect_sizes(cfg.prefs['PIVOTDIR'])
 
@@ -158,6 +159,27 @@ def say(string=None):
         string = '\033[1m{s}\033[0m'.format(s=string)
         print(string)
 
+def string2dict(string, separator='='):
+    """Interpret string as a series of lines where each line is a key=value pair.
+    The character separating key from value will be "separator".
+    Return resulting dictionary."""
+
+    cf = {}
+
+    for line in string.split("\n"):
+        if line and not line[0] == '#': # ignore blank lines and comments
+            aline = line.split(separator)
+            cf[aline[0]] = separator.join(aline[1:])
+
+    return cf
+
+def conf2dict(fname, separator='='):
+    """Read a configuration file and interpret its lines as "key=value" pairs, assigning them to a dict, and returning it.
+       fname = file name of the configuration file to read."""
+
+    with open(fname) as f:
+        return string2dict(f.read(), separator)
+     
 
 def fitit(path,limit=None):
     """Make a given string (path) fit in the screen width."""
@@ -235,21 +257,6 @@ def find_exc(it, patts):
             return True
 
     return False
-
-def conf2dic(fname,separator='='):
-    """Read a configuration file and interpret its lines as "key=value" pairs, assigning them to a dict, and returning it.
-       fname = file name of the configuration file to read."""
-     
-    cf = {}
-
-    with open(fname) as f:
-        for line in f:
-            line = line.replace('\n','')
-            if line and not line[0] == '#': # ignore blank lines and comments
-                aline = line.split(separator)
-                cf[aline[0]] = separator.join(aline[1:])
-
-    return cf
 
 def s2hms(seconds):
     """Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format."""

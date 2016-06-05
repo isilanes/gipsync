@@ -1,5 +1,6 @@
 import os
 import sys
+import gnupg
 import shutil
 import pickle
 import subprocess as sp
@@ -650,20 +651,6 @@ class Repositories(object):
         # Perform rsync:
         self.doit(cmnd)
 
-    def doit(self,command,level=1,fatal_errors=True):
-        """Run/print command, depending on dry-run-nes and verbosity."""
-        
-        if not self.options.verbosity < level:
-            print(command)
-            
-        s = sp.Popen(command, shell=True)
-        s.communicate()
-        if fatal_errors:
-            ret = s.returncode
-            if ret != 0:
-                print('Error running command:\n%s' % (command))
-                sys.exit()
-
     def ask(self,up=True):
         '''Ask for permission to proceed, if need be.'''
 
@@ -784,27 +771,27 @@ class FileItem(object):
 
     def __init__(self, name):
         self.name = name
+        self.hash = None
         self.size = 0
         self.mtime = 0
-        self.hash = None
 
 class Repo(object):
 
     def __init__(self, cfg):
         self.files = {
             "actual": {}, # dict of path -> FileItem for actual files
-            "read": {},   # dict of path -> FileItem for files read from log
+            "read": {},   # dict of path -> FileItem for files read from log (local) or index (remote)
         }
         self.cfg = cfg # Configuration object holding all config and prefs
 
-    def read_log_dict(self, dlog):
-        """Populate self.files_read, when passed the contents of a log file, as a dict "dlog"."""
+    def dict_to_read_files(self, mydict):
+        """Populate self.files["read"], when passed a dictionary read from log or index."""
 
-        for k,v in dlog.items():
+        for k,v in mydict.items():
             try:
                 hash, sz, mtime = v.split(':')
             except:
-                msg = "Could not process line: {line}".format(line=v)
+                msg = "[WARNING] Could not process line: {line}".format(line=v)
                 print(msg)
                 continue
             
@@ -836,34 +823,34 @@ class RemoteRepo(Repo):
 
         return os.path.join(self.cfg.prefs["PIVOTDIR"], self.cfg.conf["REPODIR"], 'index.dat.gpg')
 
+    def doit(self,command,level=1,fatal_errors=True):
+        """Run/print command, depending on dry-run-nes and verbosity."""
+        
+        print(command)
+            
+        s = sp.Popen(command, shell=True)
+        s.communicate()
+        if fatal_errors:
+            ret = s.returncode
+            if ret != 0:
+                print('Error running command:\n%s' % (command))
+                sys.exit()
+
     def read_index_gpg(self):
         """Read metadata from remote index.gpg."""
 
-        fn = 'index.dat'
-        cmnd = '{0.gpgcom} -o "{0.tmpdir}/{1}" -d "{0.tmpdir}/{1}.gpg"'.format(self, fn)
+        # Decrypting object:
+        gnupghome = os.path.join(os.environ["HOME"], ".gnupg")
+        gpg = gnupg.GPG(gnupghome=gnupghome)
 
-        if self.options.verbosity > 0:
-            print('\n'+cmnd)
-        
-        self.doit(cmnd)
-        conf = os.path.join(self.tmpdir, fn)
+        # Read and decrypt index file into string:
+        with open(self.index_gpg_fn) as f:
+            encrypted = f.read()
+            decrypted = gpg.decrypt(encrypted)
 
-        dict = core.conf2dic(conf,separator='|')
-
-        for k,v in dict.items():
-            av = v.split(':')
-  
-            if len(av) < 2:
-                msj = 'The length of dictionary entry "{0}|{1}" is too short!'.format(k, v)
-                sys.exit(msj)
-            if not k in self.files:
-                self.files[k] = Fileitem(k, repos=self)
-            if not k in self.files_remote:
-                self.files_remote[k] = True
-            self.files[k].hash_remote  = av[0]
-            self.files[k].size_remote  = float(av[1])
-            self.files[k].mtime_remote = float(av[2])
-
+        # Turn decrypted text into dictionary, and save into self:
+        index_dict = core.string2dict(decrypted.data, separator="|")
+        self.dict_to_read_files(index_dict)
 
 class LocalRepo(Repo):
     pass

@@ -68,11 +68,8 @@ for what in args:
         
     # --- Read remote data --- #
     RR = classes.RemoteRepo(cfg)
+    RR.read_index_gpg()
 
-    print RR.index_gpg_fn
-
-    for k,v in cfg.prefs.items():
-        print k, v
     
 """ 
       repos.read_remote()
