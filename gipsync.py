@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding=utf-8 -*-
 
 """
@@ -52,12 +51,12 @@ if o.delete:
     exit()
 
 # If no deletion, then sync. Go on:
-if args[0] == 'all':
+if args and args[0] == 'all':
     args = cfg.prefs['ALL']
 
 # Perform actions for each repo named in args:
 for what in args:
-    # Read and check configs:
+    # Read (and check) configs:
     cfg.read_conf(what)
     
     # Check that localdir is present:
@@ -66,31 +65,19 @@ for what in args:
         print("[ERROR] Required local dir '{d}' not present".format(d=ldir))
         exit()
         
-    # --- Read remote data --- #
-    RR = classes.RemoteRepo(cfg)
+    # Read remote data:
+    RR = classes.RemoteRepo(what, cfg)
     RR.read_index_gpg()
 
     
-""" 
-      repos.read_remote()
+    # Read local data:
+    LR = classes.LocalRepo(what, cfg)
+    LR.read_local_md5()
 
-  # --- Read local data --- #
+    # Traverse local file tree and update LR data:
+    LR.walk_local_tree()
 
-  hash_file = os.path.join(cfg.dir, '{0}.md5'.format(what))
-  string = 'Reading local md5tree...'
-  if not o.fresh and 'read_local_md5s' in repos.done:
-      core.say('[AVOIDED] {0}'.format(string))
-  else:
-      # Read local file hashes from conf (for those files that didn't change):
-      core.say(string)
-      repos.read(hash_file)
-
-      # Create flag to say "we already read local md5 file":
-      repos.done['read_local_md5s'] = True
-  
-  # For each step, we pickle and log time:
-  repos.pickle()
-
+"""
   # Traverse source and get list of file hashes:
   string = 'Finding new/different local files...'
   if not o.fresh and 'check_local_files' in repos.done:

@@ -156,7 +156,7 @@ def say(string=None):
     """Print out a message."""
 
     if string:
-        string = '\033[1m{s}\033[0m'.format(s=string)
+        string = u'\033[1m{s}\033[0m'.format(s=string)
         print(string)
 
 def string2dict(string, separator='='):
@@ -180,6 +180,15 @@ def conf2dict(fname, separator='='):
     with open(fname) as f:
         return string2dict(f.read(), separator)
      
+def is_item_in_patterns(item, patts):
+    """Return True if item "item" matches some pattern in "patts", False otherwise."""
+
+    for patt in patts:
+        if re.search(patt, item):
+            return True
+
+    return False
+
 
 def fitit(path,limit=None):
     """Make a given string (path) fit in the screen width."""
@@ -248,15 +257,6 @@ def bytes2size(bytes):
         i  += 1
 
     return '%.2f %s' % (sz, units[i])
-
-def find_exc(it, patts):
-    """Return True if item "it" matches some pattern in "patts", False otherwise."""
-
-    for patt in patts:
-        if patt in it:
-            return True
-
-    return False
 
 def s2hms(seconds):
     """Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format."""
