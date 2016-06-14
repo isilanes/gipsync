@@ -37,45 +37,46 @@ import sys
 from libgipsync import core
 from libgipsync import classes
 
-# --- Initialization --- #
+def main():
+    # --- Initialization --- #
 
-o = core.read_args()
-args = o.positional
-cfg = core.Configuration()
+    o = core.read_args()
+    args = o.positional
+    cfg = core.Configuration()
 
-# --- Execution --- #
+    # --- Execution --- #
 
-# Deletion means just deletion:
-if o.delete:
-    core.perform_deletion(cfg, o)
-    exit()
+    # Deletion means just deletion:
+    if o.delete:
+        core.perform_deletion(cfg, o)
+        sys.exit()
 
-# If no deletion, then sync. Go on:
-if args and args[0] == 'all':
-    args = cfg.prefs['ALL']
+    # If no deletion, then sync. Go on:
+    if args and args[0] == 'all':
+        args = cfg.prefs['ALL']
 
-# Perform actions for each repo named in args:
-for what in args:
-    # Read (and check) configs:
-    cfg.read_conf(what)
-    
-    # Check that localdir is present:
-    ldir = cfg.conf['LOCALDIR']
-    if not os.path.isdir(ldir):
-        print("[ERROR] Required local dir '{d}' not present".format(d=ldir))
-        exit()
+    # Perform actions for each repo named in args:
+    for what in args:
+        # Read (and check) configs:
+        cfg.read_conf(what)
         
-    # Read remote data:
-    RR = classes.RemoteRepo(what, cfg)
-    RR.read_index_gpg()
+        # Check that localdir is present:
+        ldir = cfg.conf['LOCALDIR']
+        if not os.path.isdir(ldir):
+            print("[ERROR] Required local dir '{d}' not present".format(d=ldir))
+            sys.exit()
+            
+        # Read remote data:
+        RR = classes.RemoteRepo(what, cfg)
+        RR.read_index_gpg()
+        
+        # Read local data:
+        LR = classes.LocalRepo(what, cfg)
+        LR.read_local_md5()
 
-    
-    # Read local data:
-    LR = classes.LocalRepo(what, cfg)
-    LR.read_local_md5()
+        # Traverse local file tree and update LR data:
+        LR.walk_local_tree()
 
-    # Traverse local file tree and update LR data:
-    LR.walk_local_tree()
 
 """
   # Traverse source and get list of file hashes:
@@ -133,8 +134,11 @@ for what in args:
   # Act according to differences in repos:
   success = False
 """ 
-exit()
 
+if __name__ == "__main__":
+    main()
+
+"""
 ##################
 #                #
 # UPDATE SECTION #
@@ -395,4 +399,4 @@ if False:
           string = 'Cleaning up...'
           core.say(string)
           repos.clean()
-
+"""

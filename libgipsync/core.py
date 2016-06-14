@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 import time
 import json
 import hashlib
@@ -343,7 +344,7 @@ class Configuration(object):
                 return json.load(f)
         except:
             print('Could not read global preferences at "{fn}"'.format(fn=fn))
-            exit()
+            sys.exit()
 
     def read_conf(self, what):
         """Read the configuration for repo named "what"."""
@@ -356,7 +357,7 @@ class Configuration(object):
                 self.conf = json.load(f)
         except:
             print('Could not read configuration of repo "{0}"'.format(what))
-            exit()
+            sys.exit()
 
         # Some fixes:
         try:
@@ -375,7 +376,7 @@ class Configuration(object):
             if not var in self.conf:
                 string = 'Sorry, but variable "{v}" is not specified in conf file'.format(v=var)
                 print(string)
-                exit()
+                sys.exit()
 
     def check_prefs(self):
         """Check that essential (general) preference variables are set."""
@@ -384,7 +385,7 @@ class Configuration(object):
             if not var in self.prefs:
                 string = 'Sorry, but variable "{v}" is not specified in global config file'.format(v=var)
                 print(string)
-                exit()
+                sys.exit()
 
     @property
     def prefs(self):
