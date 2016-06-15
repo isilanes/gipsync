@@ -1,6 +1,7 @@
 import mock
 import unittest
 import argparse
+from StringIO import StringIO
 
 import gipsync
 
@@ -57,10 +58,11 @@ class test_gipsync(unittest.TestCase):
         mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
         mock_isdir.return_value = False
         with mock.patch("sys.exit") as mock_exit:
-            with mock.patch("sys.stdout"):
+            with mock.patch("sys.stdout", new_callable=StringIO) as mock_print:
                 ret = gipsync.main()
                 self.assertIsNone(ret)
                 self.assertEqual(mock_exit.call_count, len(all_args))
+                self.assertIn("ERROR", mock_print.getvalue())
 
 
 if __name__ == "__main__":
