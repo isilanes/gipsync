@@ -10,6 +10,7 @@ class test_gipsync(unittest.TestCase):
     def setUp(self):
         pass
 
+
     @mock.patch("os.path.isdir")
     @mock.patch("libgipsync.core.read_args")
     @mock.patch("libgipsync.classes.LocalRepo")
@@ -40,9 +41,9 @@ class test_gipsync(unittest.TestCase):
         self.assertIsNone(ret)
         for arg in all_args:
             mock_conf().read_conf.assert_any_call(arg)
-        mock_conf.reset_mock()
 
         # Normal execution, called with "all":
+        mock_conf.reset_mock()
         args = [ "pos1", "pos2" ]
         mock_conf().prefs = { 'ALL': args }
         mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
@@ -50,15 +51,16 @@ class test_gipsync(unittest.TestCase):
         self.assertIsNone(ret)
         for arg in all_args:
             mock_conf().read_conf.assert_any_call(arg)
-        mock_conf.reset_mock()
 
         # If ldir does not exist:
+        mock_conf.reset_mock()
+        mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
         mock_isdir.return_value = False
         with mock.patch("sys.exit") as mock_exit:
             with mock.patch("sys.stdout"):
                 ret = gipsync.main()
                 self.assertIsNone(ret)
-                mock_exit.assert_called_once()
+                self.assertEqual(mock_exit.call_count, len(all_args))
 
 
 if __name__ == "__main__":

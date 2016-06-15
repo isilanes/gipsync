@@ -1,5 +1,5 @@
 # Run single test file:
-coverage run --source=. -m tests/test_core -v
+#coverage run --source=. -m tests/test_core -v
 
 # Run all tests in test/ dir:
 coverage run --source=. -m unittest discover -v
