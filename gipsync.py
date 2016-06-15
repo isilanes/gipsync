@@ -49,7 +49,7 @@ def main():
     # Deletion means just deletion:
     if o.delete:
         core.perform_deletion(cfg, o)
-        sys.exit()
+        return
 
     # If no deletion, then sync. Go on:
     if args and args[0] == 'all':
@@ -64,7 +64,7 @@ def main():
         ldir = cfg.conf['LOCALDIR']
         if not os.path.isdir(ldir):
             print("[ERROR] Required local dir '{d}' not present".format(d=ldir))
-            sys.exit()
+            return
             
         # Read remote data:
         RR = classes.RemoteRepo(what, cfg)

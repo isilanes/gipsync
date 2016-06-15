@@ -11,3 +11,7 @@ coverage run --source=. -m unittest discover -v
 
 # Report coverage:
 coverage report -m --skip-covered
+
+# Clean rubish:
+rm -f .coverage
+rm -f gipsync.pyc

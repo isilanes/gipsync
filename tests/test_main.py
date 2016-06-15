@@ -9,60 +9,55 @@ class test_gipsync(unittest.TestCase):
     """Test gipsync.py, the main program."""
 
     def setUp(self):
-        pass
+        self.ldir = "whatever"
+        self.all_args = [ "pos1", "pos2" ]
 
+    def test_gipsinc_deletion(self):
+        with mock.patch("os.path.isdir", return_value=True):
+            with mock.patch("libgipsync.core.read_args") as mock_args:
+                with mock.patch("libgipsync.core.Configuration") as mock_conf:
+                    mock_conf().conf = { 'LOCALDIR': self.ldir }
+                    mock_args.return_value = argparse.Namespace(positional=[], delete=True)
+                    with mock.patch("libgipsync.core.perform_deletion") as mock_deletion:
+                        gipsync.main()
+                        mock_deletion.assert_called_once()
 
-    @mock.patch("os.path.isdir")
-    @mock.patch("libgipsync.core.read_args")
-    @mock.patch("libgipsync.classes.LocalRepo")
-    @mock.patch("libgipsync.classes.RemoteRepo")
-    @mock.patch("libgipsync.core.Configuration")
-    def test_main(self, mock_conf, mock_rr, mock_lr, mock_args, mock_isdir):
-        """main() function in gipsync.py"""
-        
-        # Variables:
-        ldir = "whatever"
-        all_args = [ "pos1", "pos2" ]
+    def test_gipsync_normal(self):
+        with mock.patch("libgipsync.classes.RemoteRepo"):
+            with mock.patch("libgipsync.classes.LocalRepo"):
+                with mock.patch("os.path.isdir", return_value=True):
+                    with mock.patch("libgipsync.core.Configuration") as mock_conf:
+                        mock_conf().conf = { 'LOCALDIR': self.ldir }
+                        with mock.patch("libgipsync.core.read_args") as mock_args:
+                            mock_args.return_value = argparse.Namespace(positional=self.all_args, delete=False)
+                            ret = gipsync.main()
+                            self.assertIsNone(ret)
+                            for arg in self.all_args:
+                                mock_conf().read_conf.assert_any_call(arg)
 
-        # Configure mocks:
-        mock_isdir.return_value = True
-        mock_conf().conf = { 'LOCALDIR': ldir }
+    def test_gipsync_normal_with_all(self):
+        with mock.patch("libgipsync.classes.RemoteRepo"):
+            with mock.patch("libgipsync.classes.LocalRepo"):
+                with mock.patch("os.path.isdir", return_value=True):
+                    with mock.patch("libgipsync.core.Configuration") as mock_conf:
+                        mock_conf().prefs = { 'ALL': self.all_args }
+                        mock_conf().conf = { 'LOCALDIR': self.ldir }
+                        with mock.patch("libgipsync.core.read_args") as mock_args:
+                            mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
+                            ret = gipsync.main()
+                            self.assertIsNone(ret)
+                            for arg in self.all_args:
+                                mock_conf().read_conf.assert_any_call(arg)
 
-        # Deletion works:
-        mock_args.return_value = argparse.Namespace(positional=[], delete=True)
-        with mock.patch("libgipsync.core.perform_deletion") as mock_deletion:
-            with mock.patch("sys.exit") as mock_exit:
-                gipsync.main()
-                mock_exit.assert_called_once()
-                mock_deletion.assert_called_once()
-
-        # Normal execution:
-        mock_args.return_value = argparse.Namespace(positional=all_args, delete=False)
-        ret = gipsync.main()
-        self.assertIsNone(ret)
-        for arg in all_args:
-            mock_conf().read_conf.assert_any_call(arg)
-
-        # Normal execution, called with "all":
-        mock_conf.reset_mock()
-        args = [ "pos1", "pos2" ]
-        mock_conf().prefs = { 'ALL': args }
-        mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
-        ret = gipsync.main()
-        self.assertIsNone(ret)
-        for arg in all_args:
-            mock_conf().read_conf.assert_any_call(arg)
-
-        # If ldir does not exist:
-        mock_conf.reset_mock()
-        mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
-        mock_isdir.return_value = False
-        with mock.patch("sys.exit") as mock_exit:
-            with mock.patch("sys.stdout", new_callable=StringIO) as mock_print:
-                ret = gipsync.main()
-                self.assertIsNone(ret)
-                self.assertEqual(mock_exit.call_count, len(all_args))
-                self.assertIn("ERROR", mock_print.getvalue())
+    def test_gipsync_missing_ldir(self):
+        with mock.patch("os.path.isdir", return_value=False):
+            with mock.patch("libgipsync.core.read_args") as mock_args:
+                mock_args.return_value = argparse.Namespace(positional=["all"], delete=False)
+                with mock.patch("os.path.isdir", return_value=False):
+                    with mock.patch("sys.stdout", new_callable=StringIO) as mock_print:
+                        ret = gipsync.main()
+                        self.assertIsNone(ret)
+                        self.assertIn("ERROR", mock_print.getvalue())
 
 
 if __name__ == "__main__":
