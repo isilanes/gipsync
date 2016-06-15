@@ -32,7 +32,6 @@ $ gipsync.py blah
 """
 
 import os
-import sys
 
 from libgipsync import core
 from libgipsync import classes
