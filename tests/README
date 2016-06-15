@@ -1,3 +1,8 @@
+# You can comment out some lines in this file, and then use it as a complete
+# script to run tests and/or report coverage like that:
+#
+# $ bash tests/README
+
 # Run single test file:
 #coverage run --source=. -m tests/test_core -v
 
