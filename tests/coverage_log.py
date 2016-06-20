@@ -40,8 +40,8 @@ if o.collect:
 
     # Run tests:
     cmd = 'coverage run --source="." -m unittest discover -v'
-    #s = sp.Popen(cmd, shell=True)
-    #s.communicate()
+    s = sp.Popen(cmd, shell=True)
+    s.communicate()
 
     # Collect stats:
     for modname in J:
