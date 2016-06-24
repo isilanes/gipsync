@@ -10,6 +10,7 @@ import subprocess as sp
 
 def read_args():
     """Parse command-line arguments and return options object."""
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('positional',
