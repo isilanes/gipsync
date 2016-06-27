@@ -2,7 +2,7 @@ import json
 import pylab
 import argparse
 import subprocess as sp
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def get_args():
     """Read and parse arguments"""
@@ -76,10 +76,13 @@ for modname in J:
     if not xmax or X and X[-1] < xmax:
         xmax = X[-1]
 
+xmax += timedelta(hours=12)
+
 # Set options and show plot:
 fig.autofmt_xdate()
 pylab.xlabel("Date")
 pylab.ylabel("LOC")
+pylab.xlim([xmin, xmax])
 pylab.legend(bbox_to_anchor=(0.05, 0.95), loc=2, borderaxespad=0.5)
 pylab.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.15)
 pylab.show()
