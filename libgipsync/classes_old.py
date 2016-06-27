@@ -1,6 +1,5 @@
 import os
 import sys
-import gnupg
 import shutil
 import pickle
 import subprocess as sp

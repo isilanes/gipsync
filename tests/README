@@ -10,7 +10,7 @@
 coverage run --source=. -m unittest discover -v
 
 # Report coverage:
-coverage report -m --skip-covered --omit="libgipsync/*_old.py" 
+coverage report -m --skip-covered --omit="libgipsync/*_old.py,tests/coverage_log.py"
 
 # Clean rubish:
 rm -f .coverage

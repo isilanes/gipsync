@@ -38,14 +38,6 @@ class test_core(unittest.TestCase):
                     
     def test_collect_sizes_not_data(self):
 
-        def mysize(arg):
-            return len(arg)
-
-        def mymtime(arg):
-            arg = arg.replace("y", "fiuuun")
-            return len(arg) * 2
-
-
         values = [
             [ "path1/dato", [], [ "yiley", "file2bc" ] ],
             [ "path2/pata", [], [ "myfile1", "myfile2bc" ] ],
@@ -57,14 +49,6 @@ class test_core(unittest.TestCase):
             self.assertEqual(ret, [])
                     
     def test_collect_sizes_no_files(self):
-
-        def mysize(arg):
-            return len(arg)
-
-        def mymtime(arg):
-            arg = arg.replace("y", "fiuuun")
-            return len(arg) * 2
-
 
         values = []
 
