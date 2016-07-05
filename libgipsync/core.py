@@ -105,10 +105,26 @@ def since_epoch():
     
     return time.mktime(date.timetuple())
 
+def bytes2size(bytes):
+    """Get a number of bytes, and return it in human-friendly form (kB, MB, etc)."""
+
+    if bytes <= 1024:
+        return '{s} B'.format(s=bytes)
+
+    units = ['B', 'kB', 'MB', 'GB']
+    
+    i = 0
+    sz = bytes
+    while sz > 1024 and i < 3:
+        sz = sz/1024.0
+        i += 1
+
+    return '{s:.2f} {u}'.format(s=sz, u=units[i])
+
 def delete_asked(sizes, todelete):
     """Delete files from pivot dir, until "todelete" MB are deleted.
-    Return True if so many files deleted, False if finished before deleting that many."""
-
+    Return True if so many files deleted, False if finished before deleting that many.
+    """
     current_secs = since_epoch()
     tfiles = len(sizes)
     todelete = todelete*1024*1024 # MB to bytes

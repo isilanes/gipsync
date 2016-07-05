@@ -43,19 +43,6 @@ def fitit(path, limit=None):
 
     return os.path.join(nparts[0],newpath)
 
-def bytes2size(bytes):
-    """Get a number of bytes, and return in human-friendly form (kB, MB, etc)."""
-
-    units = ['B', 'kB', 'MB', 'GB']
-    
-    i = 0
-    sz = bytes
-    while sz > 1024:
-        sz = sz/1024.0
-        i  += 1
-
-    return '%.2f %s' % (sz, units[i])
-
 def s2hms(seconds):
     """Take an amount of seconds (or a timedelta object), and return in HH:MM:SS format."""
 
