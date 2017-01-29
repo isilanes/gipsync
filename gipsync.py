@@ -1,9 +1,6 @@
-#!/usr/bin/python3
-# -*- coding=utf-8 -*-
-
-'''
+"""
 GPG/rsync
-(c) 2008-2015, Iñaki Silanes
+(c) 2008-2016, Iñaki Silanes
 
 LICENSE
 
@@ -30,113 +27,46 @@ To upload local files (defined by ~/.gipsync/blah.conf) to remote ("pivot") site
 Then, in some other computer:
 
 % gipsync.py blah
-'''
+"""
 
-#--------------------------------------------------------------------------------#
-
+# Standard libs:
 import os
 import sys
-import argparse
 
+# Our libs:
 from libgipsync import core, classes
 
-#--------------------------------------------------#
+# Functions:
+def main():
+    """Main loop."""
 
-# Read arguments:
-parser = argparse.ArgumentParser()
+    # --- Initialization --- #
+    o = core.parse_args()
 
-parser.add_argument('positional',
-        nargs='+',
-        help="Positional arguments")
+    times = core.Timing()
+    cfg = core.Configuration()
+    cfg.read_prefs()
 
-parser.add_argument("-u", "--up",
-                  dest="up",
-                  help="If set, upload files. Default: download.",
-                  action="store_true",
-		  default=False)
+    # --- Execution --- #
+    if o.delete:
+        delete(cfg, o)
 
-parser.add_argument("-v", "--verbose",
-                  dest="verbosity",
-                  help="Increase verbosity level by 1 for each call of this option. Default: 0.",
-                  action="count",
-		  default=0)
+    else:
+        update(cfg, o, times)
 
-parser.add_argument("-s", "--safe",
-                  help="Safe mode: do not delete any local or remote file, please. Default: unsafe.",
-		  action="store_true",
-		  default=False)
+        # Lastly, print out timing summary:
+        if o.timing:
+            times.summary()
 
-parser.add_argument("-k", "--keep",
-                  help="Do not delete the generated temporary dir. Default: delete after use.",
-		  action="store_true",
-		  default=False)
+def delete(cfg, o):
+    """Perform deletion."""
 
-parser.add_argument("-S", "--size-control",
-                  dest='size_control',
-                  help="Do NOT upload files, just pretend you did. Default: if true run, upload new and diff files.",
-		  action="store_true",
-		  default=False)
-
-parser.add_argument("-T", "--timing",
-                  help="Measure elapsed time for different parts of the program, then show a summary in the end. Default: don't.",
-		  action="store_true",
-		  default=False)
-
-parser.add_argument("-d", "--delete",
-                  help="Files will be deleted, starting from oldest, until DELETE megabytes are freed. Default: None",
-		  type=float,
-                  default=None)
-
-parser.add_argument("-c", "--sync",
-                  help="Sync remote repo to local (e.g. to delete files). Default: False.",
-		  action="store_true",
-		  default=False)
-
-parser.add_argument("-f", "--force-hash",
-                  help="Check hashes of local files (to check for updates), even if mtime has not changed with respect to log. Default: only calculate hashes of files with updated mtime.",
-		  action="store_true",
-		  default=False)
-
-parser.add_argument("-l", "--limit-bw",
-                  help="Limit bandwidth usage to LIMIT kB/s. Default: no limit.",
-                  metavar='LIMIT',
-		  default=0)
-
-parser.add_argument("-F", "--fresh",
-                  help="Do not try to recover from previous interupted run. Start afresh instead. Default: recover when available.",
-		  action="store_true",
-		  default=False)
-
-parser.add_argument("--update-equals",
-                  help="If remote/local mtimes of a file coincide, but MD5s differ, update (upload local if -u, download remote otherwise. Default: Ignore (and warn about) such cases.",
-		  action="store_true",
-		  default=False)
-
-o = parser.parse_args()
-args = o.positional
-
-#--------------------------------------------------------------------------------#
-
-# --- Initialization --- #
-
-times = core.Timing()
-cfg = core.Configuration()
-cfg.read_prefs()
-
-#--------------------------------------------------------------------------------#
-
-####################
-#                  #
-# DELETION SECTION #
-#                  #
-####################
-
-if o.delete:
     # Check that repo dir is mounted:
     dir = cfg.prefs['PIVOTDIR']
     if not os.path.isdir(dir):
         msg = 'Can not find dir "{0}". Is it mounted?'.format(dir)
-        sys.exit(msg)
+        print(msg)
+        return
 
     # Get info:
     sizes = core.collect_sizes(dir)
@@ -146,11 +76,9 @@ if o.delete:
 
     # Delete up to freeing requested size,
     # starting from oldest files:
-
     todelete = o.delete*1024*1024
 
-    goon = True
-    while goon:
+    while True:
         returned = core.delete_asked(sizes, todelete)
         if returned:
             string = 'How many MBs do you want to delete?: '
@@ -158,25 +86,21 @@ if o.delete:
             try:
                 todelete = float(todelete)*1024*1024
             except:
-                goon = False
+                break
         else:
-            goon = False
+            break
 
-    sys.exit()
+def update(cfg, o, times):
+    """Perform update."""
 
-##################
-#                #
-# UPDATE SECTION #
-#                #
-##################
+    args = o.positional
 
-else:
-  # Check arguments:
-  if args and args[0] == 'all':
+    # Check arguments:
+    if args and args[0] == 'all':
       args = cfg.prefs['ALL']
 
-  # Perform actions for each repo named in args:
-  for what in args:
+    # Perform actions for each repo named in args:
+    for what in args:
       # Read and check configs:
       cfg.read_conf(what)
       cfg.check()
@@ -442,6 +366,8 @@ else:
 
       times.milestone('Finalize')
 
-# Lastly, print out timing summary:
-if o.timing:
-    times.summary()
+
+# Main:
+if __name__ == "__main__":
+    main()
+
