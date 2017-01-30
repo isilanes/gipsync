@@ -34,7 +34,7 @@ import os
 import sys
 
 # Our libs:
-from libgipsync import core, classes
+from libgipsync import core
 
 # Functions:
 def main():
@@ -112,7 +112,7 @@ def update(cfg, o, times):
           sys.exit()
 
       # Initialize repo (read from pickle, if present and not o.fresh):
-      repos = classes.Repositories(opts=o, cfg=cfg, what=what)
+      repos = core.Repositories(opts=o, cfg=cfg, what=what)
       if not o.fresh:
           repos = repos.pickle(read=True)
           repos.options = o # use currently user-given options, not pickled ones
