@@ -563,14 +563,13 @@ class Repositories(object):
         if local:
             # Then save locally (generally, to corresponding hash file in ~/.gipsync/).
 
-            string = ''
-
-            for lfn in self.files_local:
-                v = self.files[lfn]
-                fmt = '{0}|{1.hash_local}:{1.size_local}:{1.mtime_local}\n'
-                string += fmt.format(lfn, v)
             with open(fn, 'w') as f:
-                f.write(string)
+                for lfn in self.files_local:
+                    val = self.files[lfn]
+                    fmt = '{fn}|{v.hash_local}:{v.size_local}:{v.mtime_local}\n'
+                    string = fmt.format(fn=lfn, v=val)
+                    f.write(string)
+
         else:
             # Then save to remote repo, after GPGing it.
 
