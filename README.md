@@ -54,3 +54,40 @@ Index file for repo "whatever". It contains the required info (name, md5sum, siz
 * whatever.excludes
 
 Exclude file for repo "whatever". Each line will be used as a reference string. Any path in LOCALDIR that matches (wholly or partially) any reference string, will be ignored by gipsync.
+
+Deployment
+----------
+
+Export relevant key from computer it already works on:
+
+    $ gpg --export-secret-keys -a 12345678 > secret.asc 
+
+Import key in computer where we want to deploy, and edit it to give it ultimate trust:
+
+    $ gpg --import ~/secret.asc 
+    $ gpg --edit-key 12345678
+      ... then: "trust"
+      ... then: "5"
+      ... then: "y"
+      ... then: "quit"
+
+Configure GNUPG agent:
+
+    $ vi ~/.gnupg/gpg.conf
+
+and uncomment this line:
+
+    use-agent
+
+
+You should install a PIN entry program, such as pinentry-curses in Debian/Ubuntu, and configure the gpg-agent program to use it:
+
+    $ vi ~/.gnupg/gpg-agent.conf
+
+and add the line:
+
+    pinentry-program /usr/bin/pinentry-curses
+
+And then reload the agent:
+
+    $ gpg-connect-agent reloadagent /bye
