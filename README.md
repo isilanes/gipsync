@@ -1,5 +1,5 @@
 gipsync
--------
+=======
 
 A GPG/rsync tool to syncronize your files.
 
@@ -21,8 +21,8 @@ Each time we use gipsync on a repo, it will begin by making a list ("index") of 
 
 The pivot location for each repo consists of a directory containing a file named "index.dat.gpg" and a dir named "data/". The file contains the index of the present contents of the repo in the pivot, and the data/ dir contains all the actual files, with no dir structure (this information is saved in the index file). The files are saved in encrypted form, and their names are substituted by the md5sum string of their contents, so they are completely opaque to any eavesdropping by third parties. For example, consider the file "example.txt", with the following md5sum:
 
-$ md5sum example.txt
-0ad053233751e0c872b1271a44b22e52  example.txt
+    $ md5sum example.txt
+    0ad053233751e0c872b1271a44b22e52  example.txt
 
 Then it would be saved under the data/ dir, as "0ad053233751e0c872b1271a44b22e52.gpg", after being encrypted with GPG.
 
