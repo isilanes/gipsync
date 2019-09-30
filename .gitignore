@@ -3,3 +3,4 @@ __pycache__
 *.swp
 *.tgz
 utils/export.sh
+.idea
